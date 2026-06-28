@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Application\EquipmentBorrowingManagementSystem.Application.csproj" />
+    <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Domain\EquipmentBorrowingManagementSystem.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
