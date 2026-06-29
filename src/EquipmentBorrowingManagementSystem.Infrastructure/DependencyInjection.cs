@@ -1,4 +1,7 @@
+using EquipmentBorrowingManagementSystem.Application.Interfaces;
+using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
+using EquipmentBorrowingManagementSystem.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +17,10 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(connectionString));
+
+        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         return services;
     }

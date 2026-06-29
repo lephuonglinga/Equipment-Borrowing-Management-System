@@ -14,9 +14,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Application\EquipmentBorrowingManagementSystem.Application.csproj" />
     <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Infrastructure\EquipmentBorrowingManagementSystem.Infrastructure.csproj" />
   </ItemGroup>
 
