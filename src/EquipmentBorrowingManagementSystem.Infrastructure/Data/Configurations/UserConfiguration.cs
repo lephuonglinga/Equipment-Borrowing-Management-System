@@ -2,7 +2,7 @@ using EquipmentBorrowingManagementSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EquipmentBorrowingManagementSystem.Infrastructure.Persistence.Configurations;
+namespace EquipmentBorrowingManagementSystem.Infrastructure.Data.Configurations;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {

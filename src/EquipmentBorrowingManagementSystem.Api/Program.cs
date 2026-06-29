@@ -1,5 +1,6 @@
 using EquipmentBorrowingManagementSystem.Infrastructure;
-using EquipmentBorrowingManagementSystem.Infrastructure.Persistence;
+using EquipmentBorrowingManagementSystem.Infrastructure.Data;
+using EquipmentBorrowingManagementSystem.Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentBorrowingManagementSystem.Api;

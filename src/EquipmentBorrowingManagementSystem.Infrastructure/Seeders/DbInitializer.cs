@@ -1,8 +1,9 @@
 using EquipmentBorrowingManagementSystem.Domain.Entities;
 using EquipmentBorrowingManagementSystem.Domain.Enums;
+using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EquipmentBorrowingManagementSystem.Infrastructure.Persistence;
+namespace EquipmentBorrowingManagementSystem.Infrastructure.Seeders;
 
 public static class DbInitializer
 {

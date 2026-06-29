@@ -1,7 +1,7 @@
 using EquipmentBorrowingManagementSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace EquipmentBorrowingManagementSystem.Infrastructure.Persistence;
+namespace EquipmentBorrowingManagementSystem.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {

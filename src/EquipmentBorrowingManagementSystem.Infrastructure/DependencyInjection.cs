@@ -1,4 +1,4 @@
-using EquipmentBorrowingManagementSystem.Infrastructure.Persistence;
+using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
