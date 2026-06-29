@@ -50,6 +50,26 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 1: Result wrapper, Repository+UnitOfWork, AutoMapper, global exception handling, Serilog.
 
+### 3c. Slice 2 - Authentication (DONE, da test chay that)
+Co che: JWT access token (HS256, song ngan, mac dinh 60 phut) + refresh token (chuoi random 64 byte base64, luu DB, mac dinh 7 ngay) + 3 role + `[Authorize]`. Refresh co ROTATION (refresh cu bi thu hoi khi cap moi duoc phat). Logout = thu hoi refresh token.
+
+Files da tao/sua:
+- Domain: `Entities/RefreshToken.cs` (UserId, Token, ExpiresAt, RevokedAt, nav User); them nav `RefreshTokens` vao `User`.
+- Application: `Constants/Roles.cs` (Admin/Staff/User); DTOs `RegisterDto`/`LoginDto`/`RefreshRequestDto`/`AuthResponseDto`; `Interfaces/Security/IJwtTokenGenerator.cs`,`ICurrentUser.cs`,`IPasswordHasher.cs`; `Interfaces/Repositories/IUserRepository.cs`,`IRefreshTokenRepository.cs`; `Interfaces/Services/IAuthService.cs`; `Services/AuthService.cs`; cap nhat `Interfaces/IUnitOfWork.cs` (them Users + RefreshTokens) + `DependencyInjection.cs` (dang ky IAuthService).
+- Infrastructure: `Data/Configurations/RefreshTokenConfiguration.cs` (Token unique index, FK User cascade) + DbSet trong `AppDbContext`; `Repositories/UserRepository.cs`,`RefreshTokenRepository.cs` (repo refresh token Include(User) va KHONG AsNoTracking de update RevokedAt); cap nhat `UnitOfWork/UnitOfWork.cs`; `Security/JwtSettings.cs`,`JwtTokenGenerator.cs` (claims: jti + NameIdentifier + Email + Name + Role),`CurrentUser.cs` (IHttpContextAccessor),`PasswordHasher.cs` (BCrypt); cap nhat `DependencyInjection.cs` (bind JwtSettings, AddHttpContextAccessor, dang ky generator/hasher/currentuser/2 repo).
+- Api: `Controllers/AuthController.cs` (register/login/refresh/logout, [AllowAnonymous]); them `[Authorize]` vao `EquipmentController`; cap nhat `Program.cs` (AddAuthentication + AddJwtBearer voi TokenValidationParameters, UseAuthentication/UseAuthorization, Swagger nut Bearer); them section `Jwt` trong `appsettings.json`.
+- Migration: `20260629103656_AddRefreshToken` (bang RefreshTokens) - da apply.
+
+Package moi: `System.IdentityModel.Tokens.Jwt 8.2.1` (Infrastructure), `Microsoft.AspNetCore.Authentication.JwtBearer 8.0.11` (Api).
+
+Ket qua test (LocalDB that):
+- `GET /api/equipment` khong token -> 401; co token -> 200 (12 thiet bi).
+- register -> 201 + access/refresh; login -> ok; refresh -> cap token moi (access khac + refresh khac).
+- Dung lai refresh da thu hoi / da logout -> 401; sai mat khau -> 401.
+- `dotnet build`: 0 error.
+
+Bonus da gan o Slice 2: refresh token (Section 15).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -59,6 +79,9 @@ Bonus da gan o Slice 1: Result wrapper, Repository+UnitOfWork, AutoMapper, globa
 - PowerShell tren may nay: KHONG dung `&&` de noi lenh; dung `;` hoac chay rieng. Dung tham so `working_directory` thay vi `cd`.
 - Di chuyen file: dung `git mv` (giu history) roi sua namespace.
 - Luu y moi truong: che do co the bi reset ve Plan o dau moi luot; neu can sua file code (.cs/.csproj) ma bi chan, goi SwitchMode target=agent roi sua trong cung luot.
+- BAY 1 (file lock): build fail voi loi MSB3021/MSB3027 "file is locked / used by another process" = van con tien trinh API cu dang chay. Kill truoc khi build: `Get-Process -Name "EquipmentBorrowingManagementSystem.Api","dotnet" | Stop-Process -Force`.
+- BAY 2 (migration): `dotnet ef migrations add` CHI sinh file .cs, KHONG bien dich lai assembly. Neu chay `dotnet run --no-build` ngay sau do, app dung assembly cu va bao "No migrations were applied". PHAI `dotnet build` lai roi moi `dotnet run` thi migration moi duoc apply luc khoi dong.
+- JWT: claims dung ClaimTypes.NameIdentifier/Email/Name/Role + `jti` (Guid) de moi access token la duy nhat. `ClockSkew = TimeSpan.Zero`. Key/Issuer/Audience trong appsettings section `Jwt` (Key hien la gia tri dev - doi sang secret that khi deploy).
 
 ## 5. Tai khoan mau (da seed)
 
@@ -78,7 +101,8 @@ Bonus da gan o Slice 1: Result wrapper, Repository+UnitOfWork, AutoMapper, globa
 Entity hien co (Domain): User, EquipmentCategory, Equipment, BorrowRequest, BorrowRequestItem (bang trung gian n-n co thuoc tinh), ReturnRecord (1-1 voi BorrowRequest), Notification. + BaseEntity (Id, CreatedAt).
 Enum: BorrowRequestStatus (Pending/Approved/Rejected/Cancelled/InProgress/Returned/Completed/Overdue), EquipmentCondition (Good/Fair/Damaged/Lost), EquipmentStatus (Available/Borrowed/Maintenance/Retired), NotificationType, UserRole (Admin/Staff/User).
 
-Entity se them (planned, phuc vu bonus): RefreshToken, AuditLog; BaseEntity them IsDeleted + DeletedAt (soft delete + global query filter).
+Entity da them: RefreshToken (Slice 2 - UserId, Token, ExpiresAt, RevokedAt).
+Entity se them (planned, phuc vu bonus): AuditLog; BaseEntity them IsDeleted + DeletedAt (soft delete + global query filter).
 
 5 business rules (dat o service layer):
 1. Thiet bi khong Available -> khong them vao yeu cau moi.
@@ -94,8 +118,8 @@ Workflow: Pending -> Approved -> Returned -> Completed ; + Rejected, Cancelled, 
 Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi sang slice sau. Chi tiet day du o file plan: `.cursor/plans/complete_equipment_borrowing_system_c0493f75.plan.md`.
 
 - Slice 1 - Walking skeleton: DONE.
-- Slice 2 - Auth: register/login + JWT + 3 role + refresh token (them RefreshToken entity + migration) + `[Authorize]`. Them DTOs (Register/Login/AuthResponse/RefreshToken), `Constants/Roles.cs`, `IJwtTokenGenerator` + `ICurrentUser`, `Infrastructure/Security/JwtTokenGenerator.cs` + `CurrentUser.cs` (IHttpContextAccessor), `AuthService`, `AuthController`; cau hinh JWT bearer + Swagger bearer; them section `Jwt` trong appsettings. (TIEP THEO NGAY)
-- Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation (Validators/).
+- Slice 2 - Auth: register/login + JWT + 3 role + refresh token + `[Authorize]`: DONE (chi tiet o muc 3c).
+- Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation (Validators/). (TIEP THEO)
 - Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`.
 - Slice 5 - Borrow workflow: BorrowRequest create/approve/reject/cancel/return + 5 rules + in-app Notification + user chi xem cua minh.
 - Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin).
@@ -122,7 +146,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1 (walking skeleton, Equipment read API) DA XONG va test chay duoc. Hay bat dau Slice 2 (Authentication: JWT + 3 role + refresh token) theo plan.
+Trang thai: Slice 1 (walking skeleton, Equipment read API) va Slice 2 (Authentication: JWT + 3 role + refresh token, da co [Authorize] tren Equipment) DA XONG va test chay duoc. Hay bat dau Slice 3 (CRUD Equipment + EquipmentCategory + role authz + FluentValidation) theo plan.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddAutoMapper(cfg => { }, typeof(MappingProfile).Assembly);
 
         services.AddScoped<IEquipmentService, EquipmentService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

@@ -1,7 +1,9 @@
 using EquipmentBorrowingManagementSystem.Application.Interfaces;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
+using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using EquipmentBorrowingManagementSystem.Infrastructure.Repositories;
+using EquipmentBorrowingManagementSystem.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +22,15 @@ public static class DependencyInjection
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
+
+        services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+        services.AddHttpContextAccessor();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<ICurrentUser, CurrentUser>();
 
         return services;
     }

@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<BorrowRequestItem> BorrowRequestItems => Set<BorrowRequestItem>();
     public DbSet<ReturnRecord> ReturnRecords => Set<ReturnRecord>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

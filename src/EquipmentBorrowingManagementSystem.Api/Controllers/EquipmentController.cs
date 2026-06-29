@@ -1,8 +1,10 @@
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EquipmentBorrowingManagementSystem.Api.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 public class EquipmentController : ApiControllerBase
 {
