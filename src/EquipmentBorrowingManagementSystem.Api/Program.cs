@@ -4,6 +4,7 @@ using EquipmentBorrowingManagementSystem.Application;
 using EquipmentBorrowingManagementSystem.Infrastructure;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using EquipmentBorrowingManagementSystem.Infrastructure.Seeders;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -16,6 +17,7 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.MinimumLevel.Information().WriteTo.Console());
 
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

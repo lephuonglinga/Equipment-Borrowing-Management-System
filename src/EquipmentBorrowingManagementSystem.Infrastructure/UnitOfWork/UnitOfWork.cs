@@ -10,6 +10,7 @@ public class UnitOfWork : IUnitOfWork
     private readonly AppDbContext _context;
 
     private IEquipmentRepository? _equipment;
+    private IEquipmentCategoryRepository? _equipmentCategories;
     private IUserRepository? _users;
     private IRefreshTokenRepository? _refreshTokens;
 
@@ -20,6 +21,9 @@ public class UnitOfWork : IUnitOfWork
 
     public IEquipmentRepository Equipment =>
         _equipment ??= new EquipmentRepository(_context);
+
+    public IEquipmentCategoryRepository EquipmentCategories =>
+        _equipmentCategories ??= new EquipmentCategoryRepository(_context);
 
     public IUserRepository Users =>
         _users ??= new UserRepository(_context);

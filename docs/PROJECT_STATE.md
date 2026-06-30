@@ -70,6 +70,26 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 2: refresh token (Section 15).
 
+### 3d. Slice 3 - Equipment + Category CRUD (DONE, da test chay that)
+Full CRUD cho Equipment va EquipmentCategory; phan quyen: GET = Authenticated, POST/PUT/DELETE = Admin + Staff. FluentValidation cho create/update DTOs.
+
+Files da tao/sua:
+- Application: DTOs `CreateEquipmentDto`/`UpdateEquipmentDto`/`EquipmentCategoryDto`/`CreateEquipmentCategoryDto`/`UpdateEquipmentCategoryDto`; `IEquipmentCategoryService` + `EquipmentCategoryService`; mo rong `IEquipmentService`/`EquipmentService` (Create/Update/Delete); `IEquipmentCategoryRepository`; mo rong `IEquipmentRepository` (SerialNumberExists, HasActiveBorrowings); `Validators/` (4 validator); cap nhat `IUnitOfWork`, `MappingProfile`, `DependencyInjection` (AddValidatorsFromAssemblyContaining).
+- Infrastructure: `EquipmentCategoryRepository`; mo rong `EquipmentRepository`; cap nhat `UnitOfWork`, `DependencyInjection`.
+- Api: `EquipmentCategoriesController`; mo rong `EquipmentController` (POST/PUT/DELETE + [Authorize(Roles=Admin,Staff)]); `Program.cs` AddFluentValidationAutoValidation.
+
+Business rules trong service:
+- Equipment: SerialNumber unique; khong xoa neu con yeu cau muon active (Pending/Approved/InProgress/Overdue/Returned); tao moi mac dinh status Available.
+- Category: ten unique; khong xoa neu con thiet bi thuoc danh muc.
+
+Package moi: FluentValidation 11.11.0 + FluentValidation.DependencyInjectionExtensions (Application), FluentValidation.AspNetCore 11.3.0 (Api).
+
+Ket qua test (LocalDB that):
+- User POST equipment -> 403; Staff tao/sua/xoa equipment -> ok; FluentValidation empty name -> 400; duplicate serial -> 409; xoa category con thiet bi -> 400; xoa equipment -> 204; User GET categories -> ok.
+- `dotnet build`: 0 error.
+
+Bonus da gan o Slice 3: FluentValidation (Section 15).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -119,8 +139,8 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 
 - Slice 1 - Walking skeleton: DONE.
 - Slice 2 - Auth: register/login + JWT + 3 role + refresh token + `[Authorize]`: DONE (chi tiet o muc 3c).
-- Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation (Validators/). (TIEP THEO)
-- Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`.
+- Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation: DONE (chi tiet o muc 3d).
+- Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`. (TIEP THEO)
 - Slice 5 - Borrow workflow: BorrowRequest create/approve/reject/cancel/return + 5 rules + in-app Notification + user chi xem cua minh.
 - Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin).
 - Slice 7 - Cross-cutting bonus: audit log (SaveChanges interceptor) + soft delete (BaseEntity flags + global query filter) + migration.
@@ -146,7 +166,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1 (walking skeleton, Equipment read API) va Slice 2 (Authentication: JWT + 3 role + refresh token, da co [Authorize] tren Equipment) DA XONG va test chay duoc. Hay bat dau Slice 3 (CRUD Equipment + EquipmentCategory + role authz + FluentValidation) theo plan.
+Trang thai: Slice 1-3 DA XONG va test chay duoc. Hay bat dau Slice 4 (search/filter/sort/pagination cho Equipment) theo plan.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---
