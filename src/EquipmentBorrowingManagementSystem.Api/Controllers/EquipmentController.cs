@@ -18,9 +18,9 @@ public class EquipmentController : ApiControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] EquipmentQueryParams query)
     {
-        var result = await _equipmentService.GetAllAsync();
+        var result = await _equipmentService.GetPagedAsync(query);
         return ToActionResult(result);
     }
 

@@ -90,6 +90,23 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 3: FluentValidation (Section 15).
 
+### 3e. Slice 4 - Search / filter / sort / pagination (DONE, da test chay that)
+`GET /api/equipment` tra `PagedResult<EquipmentDto>` thay vi list phang. Query string: `search`, `categoryId`, `status`, `sortBy`, `sortDirection`, `pageNumber`, `pageSize`.
+
+Files da tao/sua:
+- Application: `Common/PagedResult.cs`, `Common/PaginationParams.cs`, `DTOs/EquipmentQueryParams.cs`; `IEquipmentService.GetPagedAsync`; `EquipmentService.GetPagedAsync` (validate status filter); `IEquipmentRepository.GetPagedWithCategoryAsync` (thay GetAllWithCategoryAsync).
+- Infrastructure: `EquipmentRepository.GetPagedWithCategoryAsync` (search name/serial, filter category/status, sort whitelist: name/serialNumber/status/categoryName/id, skip/take).
+- Api: `EquipmentController.GetAll([FromQuery] EquipmentQueryParams)`.
+
+Ket qua test (LocalDB that):
+- Default page -> total=12, page=1, size=10, items=10, totalPages=2.
+- pageNumber=2&pageSize=5 -> 5 items, hasPrevious=true.
+- status=Available -> loc dung; status=Invalid -> 400.
+- categoryId + sortBy=name&sortDirection=desc -> sap xep dung.
+- `dotnet build`: 0 error.
+
+Bonus da gan o Slice 4: standardized pagination (Section 15).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -140,8 +157,8 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 1 - Walking skeleton: DONE.
 - Slice 2 - Auth: register/login + JWT + 3 role + refresh token + `[Authorize]`: DONE (chi tiet o muc 3c).
 - Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation: DONE (chi tiet o muc 3d).
-- Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`. (TIEP THEO)
-- Slice 5 - Borrow workflow: BorrowRequest create/approve/reject/cancel/return + 5 rules + in-app Notification + user chi xem cua minh.
+- Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`: DONE (chi tiet o muc 3e).
+- Slice 5 - Borrow workflow: BorrowRequest create/approve/reject/cancel/return + 5 rules + in-app Notification + user chi xem cua minh. (TIEP THEO)
 - Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin).
 - Slice 7 - Cross-cutting bonus: audit log (SaveChanges interceptor) + soft delete (BaseEntity flags + global query filter) + migration.
 - Slice 8 - OData (2 endpoint: Equipment, BorrowRequests) + XML content negotiation (AddXmlSerializerFormatters + [Produces]/[Consumes]). OData de JSON de tranh xung dot formatter.
@@ -166,7 +183,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-3 DA XONG va test chay duoc. Hay bat dau Slice 4 (search/filter/sort/pagination cho Equipment) theo plan.
+Trang thai: Slice 1-4 DA XONG va test chay duoc. Hay bat dau Slice 5 (Borrow/return workflow) theo plan.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

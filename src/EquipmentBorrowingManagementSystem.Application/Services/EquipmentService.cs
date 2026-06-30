@@ -20,10 +20,27 @@ public class EquipmentService : IEquipmentService
         _mapper = mapper;
     }
 
-    public async Task<Result<List<EquipmentDto>>> GetAllAsync()
+    public async Task<Result<PagedResult<EquipmentDto>>> GetPagedAsync(EquipmentQueryParams query)
     {
-        var equipment = await _unitOfWork.Equipment.GetAllWithCategoryAsync();
-        return Result<List<EquipmentDto>>.Ok(_mapper.Map<List<EquipmentDto>>(equipment));
+        if (!string.IsNullOrWhiteSpace(query.Status) &&
+            !Enum.TryParse<EquipmentStatus>(query.Status, ignoreCase: true, out _))
+        {
+            return Result<PagedResult<EquipmentDto>>.Fail(
+                "Invalid status filter. Must be one of: Available, Borrowed, Maintenance, Retired.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        var (items, totalCount) = await _unitOfWork.Equipment.GetPagedWithCategoryAsync(query);
+
+        var paged = new PagedResult<EquipmentDto>
+        {
+            Items = _mapper.Map<List<EquipmentDto>>(items),
+            TotalCount = totalCount,
+            PageNumber = query.NormalizedPageNumber,
+            PageSize = query.NormalizedPageSize
+        };
+
+        return Result<PagedResult<EquipmentDto>>.Ok(paged);
     }
 
     public async Task<Result<EquipmentDto>> GetByIdAsync(int id)

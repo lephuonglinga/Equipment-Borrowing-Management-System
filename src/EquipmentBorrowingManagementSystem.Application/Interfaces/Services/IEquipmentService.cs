@@ -5,7 +5,7 @@ namespace EquipmentBorrowingManagementSystem.Application.Interfaces.Services;
 
 public interface IEquipmentService
 {
-    Task<Result<List<EquipmentDto>>> GetAllAsync();
+    Task<Result<PagedResult<EquipmentDto>>> GetPagedAsync(EquipmentQueryParams query);
     Task<Result<EquipmentDto>> GetByIdAsync(int id);
     Task<Result<EquipmentDto>> CreateAsync(CreateEquipmentDto dto);
     Task<Result<EquipmentDto>> UpdateAsync(int id, UpdateEquipmentDto dto);
