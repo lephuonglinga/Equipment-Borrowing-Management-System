@@ -1,4 +1,4 @@
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
 using FluentValidation;
 
 namespace EquipmentBorrowingManagementSystem.Application.Validators;

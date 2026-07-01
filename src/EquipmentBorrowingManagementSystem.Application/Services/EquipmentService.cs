@@ -1,6 +1,6 @@
 using AutoMapper;
 using EquipmentBorrowingManagementSystem.Application.Common;
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
 using EquipmentBorrowingManagementSystem.Application.Interfaces;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Services;
 using EquipmentBorrowingManagementSystem.Domain.Entities;

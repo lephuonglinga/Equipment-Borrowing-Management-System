@@ -1,5 +1,5 @@
 using EquipmentBorrowingManagementSystem.Application.Common;
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Categories;
 
 namespace EquipmentBorrowingManagementSystem.Application.Interfaces.Services;
 

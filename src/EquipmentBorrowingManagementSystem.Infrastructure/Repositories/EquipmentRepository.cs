@@ -1,4 +1,4 @@
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
 using EquipmentBorrowingManagementSystem.Domain.Entities;
 using EquipmentBorrowingManagementSystem.Domain.Enums;

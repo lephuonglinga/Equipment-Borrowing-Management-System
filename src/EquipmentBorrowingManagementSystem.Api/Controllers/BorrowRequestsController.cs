@@ -1,5 +1,5 @@
 using EquipmentBorrowingManagementSystem.Application.Constants;
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

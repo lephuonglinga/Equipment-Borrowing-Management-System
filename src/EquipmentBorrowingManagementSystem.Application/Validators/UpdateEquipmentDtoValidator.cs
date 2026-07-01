@@ -1,4 +1,4 @@
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
 using EquipmentBorrowingManagementSystem.Domain.Enums;
 using FluentValidation;
 

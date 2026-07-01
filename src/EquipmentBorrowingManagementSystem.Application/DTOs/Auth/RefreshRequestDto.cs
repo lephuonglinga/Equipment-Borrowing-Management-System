@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EquipmentBorrowingManagementSystem.Application.DTOs;
+namespace EquipmentBorrowingManagementSystem.Application.DTOs.Auth;
 
 public class RefreshRequestDto
 {

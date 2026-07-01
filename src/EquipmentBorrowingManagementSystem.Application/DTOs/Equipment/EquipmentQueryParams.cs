@@ -1,6 +1,6 @@
 using EquipmentBorrowingManagementSystem.Application.Common;
 
-namespace EquipmentBorrowingManagementSystem.Application.DTOs;
+namespace EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
 
 public class EquipmentQueryParams : PaginationParams
 {

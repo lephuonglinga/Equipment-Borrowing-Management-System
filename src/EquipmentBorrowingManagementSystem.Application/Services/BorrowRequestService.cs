@@ -1,7 +1,7 @@
 using AutoMapper;
 using EquipmentBorrowingManagementSystem.Application.Common;
 using EquipmentBorrowingManagementSystem.Application.Constants;
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
 using EquipmentBorrowingManagementSystem.Application.Interfaces;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Services;

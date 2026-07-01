@@ -1,4 +1,4 @@
-namespace EquipmentBorrowingManagementSystem.Application.DTOs;
+namespace EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
 
 public class BorrowRequestDto
 {

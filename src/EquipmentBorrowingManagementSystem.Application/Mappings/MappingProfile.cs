@@ -1,5 +1,7 @@
 using AutoMapper;
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Categories;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
 using EquipmentBorrowingManagementSystem.Domain.Entities;
 
 namespace EquipmentBorrowingManagementSystem.Application.Mappings;

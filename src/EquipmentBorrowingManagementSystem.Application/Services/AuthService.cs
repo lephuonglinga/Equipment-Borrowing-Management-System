@@ -1,5 +1,5 @@
 using EquipmentBorrowingManagementSystem.Application.Common;
-using EquipmentBorrowingManagementSystem.Application.DTOs;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Auth;
 using EquipmentBorrowingManagementSystem.Application.Interfaces;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Services;
