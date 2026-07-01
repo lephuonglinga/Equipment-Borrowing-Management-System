@@ -25,6 +25,8 @@ public static class DependencyInjection
         services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IBorrowRequestRepository, BorrowRequestRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));

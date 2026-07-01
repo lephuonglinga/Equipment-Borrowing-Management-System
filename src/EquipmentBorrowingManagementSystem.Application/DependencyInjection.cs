@@ -18,6 +18,8 @@ public static class DependencyInjection
         services.AddScoped<IEquipmentService, EquipmentService>();
         services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IBorrowRequestService, BorrowRequestService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

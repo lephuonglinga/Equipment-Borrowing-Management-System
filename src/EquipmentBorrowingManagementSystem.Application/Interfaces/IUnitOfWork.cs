@@ -6,6 +6,8 @@ public interface IUnitOfWork : IDisposable
 {
     IEquipmentRepository Equipment { get; }
     IEquipmentCategoryRepository EquipmentCategories { get; }
+    IBorrowRequestRepository BorrowRequests { get; }
+    INotificationRepository Notifications { get; }
     IUserRepository Users { get; }
     IRefreshTokenRepository RefreshTokens { get; }
     Task<int> SaveChangesAsync();

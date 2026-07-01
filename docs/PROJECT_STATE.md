@@ -107,6 +107,32 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 4: standardized pagination (Section 15).
 
+### 3f. Slice 5 - Borrow/return workflow (DONE, da test chay that)
+Full borrow lifecycle: create, approve, reject, cancel, return + 5 business rules + in-app notifications.
+
+Files da tao/sua:
+- Application: DTOs `BorrowRequestDto`/`BorrowRequestItemDto`/`CreateBorrowRequestDto`/`RejectBorrowRequestDto`/`ReturnBorrowRequestDto`; `IBorrowRequestRepository`/`INotificationRepository`; `IBorrowRequestService`/`INotificationService`; `BorrowRequestService` (5 rules + return mapping), `NotificationService`; validators (create/reject/return); cap nhat `IUnitOfWork`, `MappingProfile`, `DependencyInjection`.
+- Infrastructure: `BorrowRequestRepository` (details query, tracked update, overdue check), `NotificationRepository`; cap nhat `UnitOfWork`, `DependencyInjection`.
+- Api: `BorrowRequestsController` (GET/POST, PUT approve/reject/cancel/return).
+
+Endpoints:
+- POST /api/borrow-requests (Authenticated)
+- GET /api/borrow-requests, GET /api/borrow-requests/{id} (User=own, Staff/Admin=all)
+- PUT /api/borrow-requests/{id}/approve|reject|return (Admin/Staff)
+- PUT /api/borrow-requests/{id}/cancel (owner, Pending only)
+
+Business rules trong BorrowRequestService:
+1. Equipment phai Available khi tao/duyet.
+2. User co yeu cau Overdue -> khong tao moi.
+3. Approve/reject chi Staff/Admin, chi Pending.
+4. ExpectedReturnDate >= BorrowDate.
+5. Return: ghi ConditionAtReturn tung item; Good/Fair->Available, Damaged->Maintenance, Lost->Retired; ReturnRecord.OverallCondition=xau nhat; status->Completed.
+
+Ket qua test: overdue block 400; create/approve/return (Damaged->Maintenance); cancel; reject; non-available 400; user approve 403.
+- `dotnet build`: 0 error.
+
+Bonus da gan o Slice 5: simulated in-app notifications (Section 15).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -158,8 +184,8 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 2 - Auth: register/login + JWT + 3 role + refresh token + `[Authorize]`: DONE (chi tiet o muc 3c).
 - Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation: DONE (chi tiet o muc 3d).
 - Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`: DONE (chi tiet o muc 3e).
-- Slice 5 - Borrow workflow: BorrowRequest create/approve/reject/cancel/return + 5 rules + in-app Notification + user chi xem cua minh. (TIEP THEO)
-- Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin).
+- Slice 5 - Borrow workflow: DONE (chi tiet o muc 3f).
+- Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin). (TIEP THEO)
 - Slice 7 - Cross-cutting bonus: audit log (SaveChanges interceptor) + soft delete (BaseEntity flags + global query filter) + migration.
 - Slice 8 - OData (2 endpoint: Equipment, BorrowRequests) + XML content negotiation (AddXmlSerializerFormatters + [Produces]/[Consumes]). OData de JSON de tranh xung dot formatter.
 - Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
@@ -183,7 +209,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-4 DA XONG va test chay duoc. Hay bat dau Slice 5 (Borrow/return workflow) theo plan.
+Trang thai: Slice 1-5 DA XONG va test chay duoc. Hay bat dau Slice 6 (Reports + dashboard) theo plan.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---
