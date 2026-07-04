@@ -133,6 +133,29 @@ Ket qua test: overdue block 400; create/approve/return (Damaged->Maintenance); c
 
 Bonus da gan o Slice 5: simulated in-app notifications (Section 15).
 
+### 3g. Slice 6 - Reports + dashboard (DONE, da test chay that)
+Bao cao va dashboard cho Staff/Admin: borrow-summary, overdue-requests, dashboard stats.
+
+Files da tao/sua:
+- Application: `DTOs/Reports/` (`BorrowSummaryDto`, `BorrowSummaryQueryParams`, `OverdueRequestDto`, `DashboardStatsDto`, `StatusCountDto`, `MostBorrowedEquipmentDto`, `EquipmentStatusCountDto`); `IReportRepository`; `IReportService` + `ReportService`; cap nhat `IUnitOfWork`, `DependencyInjection`.
+- Infrastructure: `ReportRepository` (aggregate queries); cap nhat `UnitOfWork`, `DependencyInjection`.
+- Api: `ReportsController` ([Authorize(Roles=Admin,Staff)]).
+
+Endpoints:
+- GET /api/reports/borrow-summary?fromDate=&toDate= (optional date filter theo RequestDate)
+- GET /api/reports/overdue-requests (Status=Overdue hoac Approved/InProgress qua ExpectedReturnDate)
+- GET /api/reports/dashboard (equipment by status, borrow by status, overdue count, damaged returns, top 5 most-borrowed)
+
+Ket qua test (LocalDB that):
+- User GET reports -> 403; khong token -> 401.
+- Staff borrow-summary -> 200 (counts by status, completed/active/rejected/cancelled).
+- Staff overdue-requests -> 200 (danh sach qua han kem daysOverdue + items).
+- Staff dashboard -> 200 (equipmentByStatus, borrowRequestsByStatus, overdueRequestCount, damagedReturnItemCount, mostBorrowedEquipment).
+- fromDate > toDate -> 400.
+- `dotnet build`: 0 error.
+
+Bonus da gan o Slice 6: dashboard stats (Section 15).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -185,8 +208,8 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation: DONE (chi tiet o muc 3d).
 - Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`: DONE (chi tiet o muc 3e).
 - Slice 5 - Borrow workflow: DONE (chi tiet o muc 3f).
-- Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin). (TIEP THEO)
-- Slice 7 - Cross-cutting bonus: audit log (SaveChanges interceptor) + soft delete (BaseEntity flags + global query filter) + migration.
+- Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin): DONE (chi tiet o muc 3g).
+- Slice 7 - Cross-cutting bonus: audit log (SaveChanges interceptor) + soft delete (BaseEntity flags + global query filter) + migration. (TIEP THEO)
 - Slice 8 - OData (2 endpoint: Equipment, BorrowRequests) + XML content negotiation (AddXmlSerializerFormatters + [Produces]/[Consumes]). OData de JSON de tranh xung dot formatter.
 - Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
 - Slice 10 - Client vanilla JS: `client/` (login + luu JWT localStorage, list equipment, create/update, gui borrow request, history, xu ly 401/403/404/400) + CORS.
@@ -209,7 +232,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-5 DA XONG va test chay duoc. Hay bat dau Slice 6 (Reports + dashboard) theo plan.
+Trang thai: Slice 1-6 DA XONG va test chay duoc. Hay bat dau Slice 7 (audit log + soft delete) theo plan.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

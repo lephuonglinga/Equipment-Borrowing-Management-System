@@ -13,6 +13,7 @@ public class UnitOfWork : IUnitOfWork
     private IEquipmentCategoryRepository? _equipmentCategories;
     private IBorrowRequestRepository? _borrowRequests;
     private INotificationRepository? _notifications;
+    private IReportRepository? _reports;
     private IUserRepository? _users;
     private IRefreshTokenRepository? _refreshTokens;
 
@@ -32,6 +33,9 @@ public class UnitOfWork : IUnitOfWork
 
     public INotificationRepository Notifications =>
         _notifications ??= new NotificationRepository(_context);
+
+    public IReportRepository Reports =>
+        _reports ??= new ReportRepository(_context);
 
     public IUserRepository Users =>
         _users ??= new UserRepository(_context);
