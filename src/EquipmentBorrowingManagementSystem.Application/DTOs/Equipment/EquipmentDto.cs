@@ -1,5 +1,8 @@
+using System.Xml.Serialization;
+
 namespace EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
 
+[XmlRoot("Equipment")]
 public class EquipmentDto
 {
     public int Id { get; set; }

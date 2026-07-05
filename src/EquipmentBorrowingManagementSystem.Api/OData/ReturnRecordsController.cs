@@ -14,6 +14,7 @@ namespace EquipmentBorrowingManagementSystem.Api.OData;
 /// No REST list endpoint for return records.
 /// </summary>
 [Authorize(Roles = $"{Roles.Admin},{Roles.Staff}")]
+[Produces("application/json")]
 public class ReturnRecordsController : ODataController
 {
     private readonly AppDbContext _context;

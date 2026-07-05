@@ -14,6 +14,7 @@ namespace EquipmentBorrowingManagementSystem.Api.OData;
 /// REST only exposes items nested inside /api/borrow-requests/{id}.
 /// </summary>
 [Authorize(Roles = $"{Roles.Admin},{Roles.Staff}")]
+[Produces("application/json")]
 public class BorrowRequestItemsController : ODataController
 {
     private readonly AppDbContext _context;

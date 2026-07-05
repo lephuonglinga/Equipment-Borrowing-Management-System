@@ -8,6 +8,8 @@ namespace EquipmentBorrowingManagementSystem.Api.Controllers;
 
 [Authorize]
 [Route("api/[controller]")]
+[Produces("application/json", "application/xml")]
+[Consumes("application/json", "application/xml")]
 public class EquipmentController : ApiControllerBase
 {
     private readonly IEquipmentService _equipmentService;

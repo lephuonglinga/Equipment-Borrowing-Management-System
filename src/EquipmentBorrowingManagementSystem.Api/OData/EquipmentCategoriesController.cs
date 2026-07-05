@@ -13,6 +13,7 @@ namespace EquipmentBorrowingManagementSystem.Api.OData;
 /// REST /api/equipment-categories returns flat categories only.
 /// </summary>
 [Authorize]
+[Produces("application/json")]
 public class EquipmentCategoriesController : ODataController
 {
     private readonly AppDbContext _context;

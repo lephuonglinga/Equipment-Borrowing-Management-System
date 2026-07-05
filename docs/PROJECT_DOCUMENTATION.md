@@ -156,15 +156,24 @@ flowchart LR
 | Xem lịch sử cá nhân | Có | Có | Có (chỉ của mình) |
 | Xem audit log | Có | Không | Không |
 
-## 11. OData demo _(planned — Slice 8)_
+## 11. OData demo
 
-- `GET /odata/Equipment?$filter=status eq 'Available'&$orderby=name&$top=10`
-- `GET /odata/BorrowRequests?$filter=userId eq 3&$orderby=requestDate desc&$expand=items`
+Ba endpoint OData doc lap REST (chi JSON):
 
-## 12. Content negotiation demo _(planned — Slice 8)_
+- `GET /odata/EquipmentCategories?$expand=equipments&$filter=equipments/any(e: e/status eq 'Available')`
+- `GET /odata/ReturnRecords?$expand=borrowRequest&$orderby=returnDate desc`
+- `GET /odata/BorrowRequestItems?$filter=conditionAtReturn eq 'Damaged'&$expand=equipment,borrowRequest`
 
-- `GET /api/equipment` với `Accept: application/json` → JSON.
-- `GET /api/equipment` với `Accept: application/xml` → XML (bật `AddXmlSerializerFormatters`; dùng `[Produces]`/`[Consumes]`).
+## 12. Content negotiation demo
+
+Equipment REST (`/api/equipment`) ho tro JSON va XML qua header `Accept` / `Content-Type`:
+
+- `GET /api/equipment` với `Accept: application/json` → JSON (`PagedResult`).
+- `GET /api/equipment` với `Accept: application/xml` → XML (`<PagedResult><Item>...</Item></PagedResult>`).
+- `GET /api/equipment/{id}` với `Accept: application/xml` → XML (`<Equipment>...</Equipment>`).
+- `POST`/`PUT` với `Content-Type: application/xml` → body XML (Staff/Admin).
+
+OData endpoints luôn trả JSON (`[Produces("application/json")]`).
 
 ## 13. gRPC demo _(planned — Slice 9)_
 

@@ -19,6 +19,7 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.MinimumLevel.Information().WriteTo.Console());
 
 builder.Services.AddControllers()
+    .AddXmlSerializerFormatters()
     .AddOData(options => options
         .Select()
         .Filter()

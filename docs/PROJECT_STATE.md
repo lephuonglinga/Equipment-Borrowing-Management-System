@@ -207,6 +207,24 @@ Ket qua test:
 
 Phan Slice 8 con lai: XML content negotiation.
 
+### 3j. Slice 8 (phan XML) - Content negotiation JSON/XML (DONE, da test chay that)
+REST `/api/equipment` ho tro ca JSON va XML; OData van chi JSON.
+
+Files da tao/sua:
+- Api: `Program.cs` (`AddXmlSerializerFormatters`); `Controllers/EquipmentController.cs` (`[Produces]`/`[Consumes]` JSON+XML); `OData/*Controller.cs` (`[Produces("application/json")]`); csproj (`Microsoft.AspNetCore.Mvc.Formatters.Xml` 2.3.11).
+- Application: `EquipmentDto` (`[XmlRoot("Equipment")]`); `PagedResult<T>` (`[XmlRoot("PagedResult")]`, `[XmlElement("Item")]` cho list).
+
+Demo:
+- `GET /api/equipment` + `Accept: application/json` -> JSON (`PagedResult<EquipmentDto>`).
+- `GET /api/equipment` + `Accept: application/xml` -> XML (`<PagedResult><Item>...</Item></PagedResult>`).
+- `GET /api/equipment/{id}` + `Accept: application/xml` -> XML (`<Equipment>...</Equipment>`).
+- POST/PUT `/api/equipment` chap nhan body JSON hoac XML (`Content-Type` tuong ung).
+- `GET /odata/EquipmentCategories` + `Accept: application/xml` -> van JSON (OData khong negotiate XML).
+
+Ket qua test (LocalDB :5171):
+- JSON list 200 `application/json`; XML list 200 `application/xml`; XML by-id 200 `application/xml`.
+- OData + Accept XML -> 200 `application/json` (dung nhu thiet ke).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -261,11 +279,9 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 5 - Borrow workflow: DONE (chi tiet o muc 3f).
 - Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin): DONE (chi tiet o muc 3g).
 - Slice 7 - Cross-cutting bonus: audit log + soft delete: DONE (chi tiet o muc 3h).
-- Slice 8 - OData: DONE (phan OData — muc 3i). XML content negotiation: CHUA LAM.
-- Slice 9 - gRPC: ...
-- Slice 10 - Notifications REST + Users REST (Admin activate/deactivate, NO delete) + vanilla JS client + CORS: (TIEP THEO sau Slice 8 XML / Slice 9)
+- Slice 8 - OData + XML content negotiation: DONE (muc 3i + 3j).
 - Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
-- Slice 10 - Client vanilla JS: `client/` (login + luu JWT localStorage, list equipment, create/update, gui borrow request, history, xu ly 401/403/404/400) + CORS.
+- Slice 10 - Notifications REST + Users REST (Admin activate/deactivate, NO delete) + vanilla JS client + CORS: (TIEP THEO)
 - Slice 11 - Docker Compose (SQL Server + Api + Grpc) + Dockerfile.
 - Slice 12 - Docs: hoan thien PROJECT_DOCUMENTATION (da co ban nhap), cap nhat ERD.dbml (them RefreshToken/AuditLog/soft delete), Postman collection.
 
@@ -285,7 +301,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-7 DA XONG; Slice 8 OData DA XONG (XML chua lam). Tiep theo: hoan thien Slice 8 XML hoac Slice 9 gRPC.
+Trang thai: Slice 1-8 DA XONG va test chay duoc. Tiep theo: Slice 9 gRPC hoac Slice 10 notifications/users/client.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---
