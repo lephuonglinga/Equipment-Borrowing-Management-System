@@ -9,6 +9,7 @@ public interface IUnitOfWork : IDisposable
     IBorrowRequestRepository BorrowRequests { get; }
     INotificationRepository Notifications { get; }
     IReportRepository Reports { get; }
+    IAuditLogRepository AuditLogs { get; }
     IUserRepository Users { get; }
     IRefreshTokenRepository RefreshTokens { get; }
     Task<int> SaveChangesAsync();

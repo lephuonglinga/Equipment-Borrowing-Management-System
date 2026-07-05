@@ -1,6 +1,7 @@
 using EquipmentBorrowingManagementSystem.Application.Interfaces;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
+using EquipmentBorrowingManagementSystem.Infrastructure.Audit;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using EquipmentBorrowingManagementSystem.Infrastructure.Repositories;
 using EquipmentBorrowingManagementSystem.Infrastructure.Security;
@@ -17,8 +18,11 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        services.AddScoped<AuditSaveChangesInterceptor>();
+
+        services.AddDbContext<AppDbContext>((sp, options) =>
+            options.UseSqlServer(connectionString)
+                .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
@@ -28,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IBorrowRequestRepository, BorrowRequestRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));

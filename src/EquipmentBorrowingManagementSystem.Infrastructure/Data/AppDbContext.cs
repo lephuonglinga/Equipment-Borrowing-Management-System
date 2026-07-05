@@ -1,3 +1,4 @@
+using System.Reflection;
 using EquipmentBorrowingManagementSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,10 +18,35 @@ public class AppDbContext : DbContext
     public DbSet<ReturnRecord> ReturnRecords => Set<ReturnRecord>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        ApplySoftDeleteFilters(modelBuilder);
         base.OnModelCreating(modelBuilder);
+    }
+
+    private static void ApplySoftDeleteFilters(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                continue;
+            }
+
+            var method = typeof(AppDbContext)
+                .GetMethod(nameof(SetSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(entityType.ClrType);
+
+            method.Invoke(null, [modelBuilder]);
+        }
+    }
+
+    private static void SetSoftDeleteFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : BaseEntity
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(entity => !entity.IsDeleted);
     }
 }

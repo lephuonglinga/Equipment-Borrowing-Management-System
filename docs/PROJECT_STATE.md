@@ -156,6 +156,33 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 6: dashboard stats (Section 15).
 
+### 3h. Slice 7 - Audit log + soft delete (DONE, da test chay that)
+Soft delete tren BaseEntity + global query filter; audit log tu dong qua SaveChanges interceptor; Admin xem audit logs.
+
+Files da tao/sua:
+- Domain: `BaseEntity` them `IsDeleted`, `DeletedAt`; entity `AuditLog`; enum `AuditAction` (Created/Updated/Deleted).
+- Application: `DTOs/Audit/` (`AuditLogDto`, `AuditLogQueryParams`); `IAuditLogRepository`, `IAuditLogService`, `AuditLogService`; cap nhat `IUnitOfWork`, `DependencyInjection`.
+- Infrastructure: `Audit/AuditSaveChangesInterceptor` (ghi audit sau SaveChanges, dung `ICurrentUser` qua `IHttpContextAccessor`); `AuditLogRepository`; `AuditLogConfiguration`; `AppDbContext` global soft-delete filter + `DbSet<AuditLog>`; `GenericRepository.Delete` -> soft delete; cap nhat `UnitOfWork`, `DependencyInjection` (AddInterceptors).
+- Api: `AuditLogsController` ([Authorize(Roles=Admin)]).
+- Migration: `20260705030758_AddAuditLogAndSoftDelete` (IsDeleted/DeletedAt tren tat ca bang BaseEntity + bang AuditLogs).
+
+Endpoints:
+- GET /api/audit-logs?entityName=&action=&pageNumber=&pageSize= (Admin only)
+
+Cach hoat dong:
+- Delete qua repository: set `IsDeleted=true`, `DeletedAt=UtcNow` thay vi xoa row.
+- Global query filter: moi entity ke thua BaseEntity tu dong loc `!IsDeleted`.
+- Interceptor: Created/Updated/soft-Deleted ghi vao `AuditLogs` (bo qua AuditLog, RefreshToken).
+
+Ket qua test (LocalDB that):
+- Staff tao equipment -> audit Created (userId=2, staff@ebms.local).
+- Staff DELETE equipment -> GET by id 404 (an khoi list); audit Deleted voi changes JSON.
+- Staff GET /api/audit-logs -> 403; Admin -> 200 + PagedResult.
+- Filter entityName=Equipment, action=Deleted -> dung.
+- `dotnet build`: 0 error; migration apply luc khoi dong.
+
+Bonus da gan o Slice 7: audit log, soft delete (Section 15).
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -187,8 +214,8 @@ Bonus da gan o Slice 6: dashboard stats (Section 15).
 Entity hien co (Domain): User, EquipmentCategory, Equipment, BorrowRequest, BorrowRequestItem (bang trung gian n-n co thuoc tinh), ReturnRecord (1-1 voi BorrowRequest), Notification. + BaseEntity (Id, CreatedAt).
 Enum: BorrowRequestStatus (Pending/Approved/Rejected/Cancelled/InProgress/Returned/Completed/Overdue), EquipmentCondition (Good/Fair/Damaged/Lost), EquipmentStatus (Available/Borrowed/Maintenance/Retired), NotificationType, UserRole (Admin/Staff/User).
 
-Entity da them: RefreshToken (Slice 2 - UserId, Token, ExpiresAt, RevokedAt).
-Entity se them (planned, phuc vu bonus): AuditLog; BaseEntity them IsDeleted + DeletedAt (soft delete + global query filter).
+Entity da them: RefreshToken (Slice 2), AuditLog (Slice 7).
+BaseEntity da them: IsDeleted + DeletedAt (Slice 7 - soft delete + global query filter).
 
 5 business rules (dat o service layer):
 1. Thiet bi khong Available -> khong them vao yeu cau moi.
@@ -209,8 +236,8 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`: DONE (chi tiet o muc 3e).
 - Slice 5 - Borrow workflow: DONE (chi tiet o muc 3f).
 - Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin): DONE (chi tiet o muc 3g).
-- Slice 7 - Cross-cutting bonus: audit log (SaveChanges interceptor) + soft delete (BaseEntity flags + global query filter) + migration. (TIEP THEO)
-- Slice 8 - OData (2 endpoint: Equipment, BorrowRequests) + XML content negotiation (AddXmlSerializerFormatters + [Produces]/[Consumes]). OData de JSON de tranh xung dot formatter.
+- Slice 7 - Cross-cutting bonus: audit log + soft delete: DONE (chi tiet o muc 3h).
+- Slice 8 - OData (2 endpoint: Equipment, BorrowRequests) + XML content negotiation (AddXmlSerializerFormatters + [Produces]/[Consumes]). OData de JSON de tranh xung dot formatter. (TIEP THEO)
 - Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
 - Slice 10 - Client vanilla JS: `client/` (login + luu JWT localStorage, list equipment, create/update, gui borrow request, history, xu ly 401/403/404/400) + CORS.
 - Slice 11 - Docker Compose (SQL Server + Api + Grpc) + Dockerfile.
@@ -232,7 +259,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-6 DA XONG va test chay duoc. Hay bat dau Slice 7 (audit log + soft delete) theo plan.
+Trang thai: Slice 1-7 DA XONG va test chay duoc. Hay bat dau Slice 8 (OData + XML) theo plan.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

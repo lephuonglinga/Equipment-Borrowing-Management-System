@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
+using EquipmentBorrowingManagementSystem.Domain.Entities;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,6 +49,14 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
 
     public virtual void Delete(T entity)
     {
+        if (entity is BaseEntity softDeletable)
+        {
+            softDeletable.IsDeleted = true;
+            softDeletable.DeletedAt = DateTime.UtcNow;
+            DbSet.Update(entity);
+            return;
+        }
+
         DbSet.Remove(entity);
     }
 }

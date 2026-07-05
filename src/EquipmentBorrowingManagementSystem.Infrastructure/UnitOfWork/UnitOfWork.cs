@@ -14,6 +14,7 @@ public class UnitOfWork : IUnitOfWork
     private IBorrowRequestRepository? _borrowRequests;
     private INotificationRepository? _notifications;
     private IReportRepository? _reports;
+    private IAuditLogRepository? _auditLogs;
     private IUserRepository? _users;
     private IRefreshTokenRepository? _refreshTokens;
 
@@ -36,6 +37,9 @@ public class UnitOfWork : IUnitOfWork
 
     public IReportRepository Reports =>
         _reports ??= new ReportRepository(_context);
+
+    public IAuditLogRepository AuditLogs =>
+        _auditLogs ??= new AuditLogRepository(_context);
 
     public IUserRepository Users =>
         _users ??= new UserRepository(_context);
