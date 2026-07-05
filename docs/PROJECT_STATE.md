@@ -225,6 +225,32 @@ Ket qua test (LocalDB :5171):
 - JSON list 200 `application/json`; XML list 200 `application/xml`; XML by-id 200 `application/xml`.
 - OData + Accept XML -> 200 `application/json` (dung nhu thiet ke).
 
+### 3k. Slice 10 (phan Users REST) - Admin user management UC-AD1 (DONE, da test chay that)
+Admin quan ly user: tao Staff; activate/deactivate — **KHONG DELETE**, **KHONG UPDATE**.
+
+Files da tao/sua:
+- Application: `DTOs/Users/UserDto`, `CreateUserDto`; `Interfaces/Services/IUserService.cs`; `Services/UserService.cs`; `Validators/CreateUserDtoValidator`; `Mappings/MappingProfile` (User -> UserDto); `DependencyInjection.cs`.
+- Api: `Controllers/UsersController.cs` (Admin only).
+
+Endpoints:
+| Method | Route | Mo ta |
+|---|---|---|
+| GET | /api/users | Danh sach user (khong lo PasswordHash) |
+| GET | /api/users/{id} | Chi tiet user |
+| POST | /api/users | Tao tai khoan Staff (role co dinh, email unique) |
+| PUT | /api/users/{id}/deactivate | IsActive = false |
+| PUT | /api/users/{id}/activate | IsActive = true |
+
+Rules: chi Admin; email unique; Admin khong tu deactivate chinh minh; user IsActive=false khong login (AuthService da co).
+
+Ket qua test:
+- Admin GET list, POST create, deactivate/activate -> ok.
+- User deactivated login -> 403.
+- Admin self-deactivate -> 400.
+- User role GET /api/users -> 403.
+
+Phan Slice 10 con lai: Notifications REST + vanilla JS client + CORS.
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -281,7 +307,7 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 7 - Cross-cutting bonus: audit log + soft delete: DONE (chi tiet o muc 3h).
 - Slice 8 - OData + XML content negotiation: DONE (muc 3i + 3j).
 - Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
-- Slice 10 - Notifications REST + Users REST (Admin activate/deactivate, NO delete) + vanilla JS client + CORS: (TIEP THEO)
+- Slice 10 - Users REST: DONE (muc 3k). Con lai: Notifications REST + vanilla JS client + CORS.
 - Slice 11 - Docker Compose (SQL Server + Api + Grpc) + Dockerfile.
 - Slice 12 - Docs: hoan thien PROJECT_DOCUMENTATION (da co ban nhap), cap nhat ERD.dbml (them RefreshToken/AuditLog/soft delete), Postman collection.
 
@@ -301,7 +327,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-8 DA XONG va test chay duoc. Tiep theo: Slice 9 gRPC hoac Slice 10 notifications/users/client.
+Trang thai: Slice 1-8 DA XONG; Slice 10 Users REST DA XONG (notifications + client chua lam). Tiep theo: Slice 9 gRPC hoac hoan thien Slice 10 (notifications + client).
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

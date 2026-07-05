@@ -30,7 +30,7 @@ Hệ thống quản lý việc mượn, trả và theo dõi thiết bị trong m
 - **UC-A3 Làm mới token:** refresh token còn hiệu lực & chưa thu hồi; xoay vòng token (cấp mới, vô hiệu cái cũ).
 
 ### Admin
-- **UC-AD1 Quản lý người dùng:** gán role, bật/tắt `IsActive` (activate/deactivate). Nghiệp vụ: chỉ Admin; email unique; không tự deactivate chính mình; **không xóa user**; không lộ `PasswordHash`.
+- **UC-AD1 Quản lý người dùng:** Admin tạo tài khoản **Staff**, bật/tắt `IsActive` (activate/deactivate). User thường tự đăng ký qua `/api/auth/register`. Nghiệp vụ: chỉ Admin; email unique; không tự deactivate chính mình; **không xóa user**; không lộ `PasswordHash`.
 - **UC-AD2 Xem audit log:** chỉ đọc; ghi tự động kèm người thực hiện + thời điểm.
 - Admin kế thừa toàn bộ use case của Staff và User.
 
@@ -109,7 +109,7 @@ flowchart LR
 | Service | Trách nhiệm |
 |---|---|
 | AuthService | Đăng ký, đăng nhập, làm mới/thu hồi token, hash mật khẩu |
-| UserService | Quản lý người dùng, gán role, cập nhật profile |
+| UserService | Quản lý người dùng: tạo Staff, activate/deactivate |
 | EquipmentCategoryService | CRUD danh mục thiết bị |
 | EquipmentService | CRUD thiết bị, tìm kiếm/lọc/sắp xếp/phân trang, cập nhật trạng thái |
 | BorrowRequestService | Tạo/hủy/duyệt/từ chối/ghi nhận trả, áp dụng business rules |
@@ -123,7 +123,8 @@ flowchart LR
 | POST | /api/auth/register | Anonymous |
 | POST | /api/auth/login | Anonymous |
 | POST | /api/auth/refresh | Anonymous |
-| GET/POST/PUT | /api/users | Admin |
+| GET | /api/users | Admin |
+| POST | /api/users | Admin (tạo Staff; role cố định) |
 | PUT | /api/users/{id}/deactivate | Admin |
 | PUT | /api/users/{id}/activate | Admin |
 | GET | /api/equipment-categories | Authenticated |
