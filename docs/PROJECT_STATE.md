@@ -15,6 +15,7 @@
 - Bonus: lam TAT CA Section 15 (refresh token, audit log, soft delete, pagination chuan hoa, global exception handling, Result wrapper, AutoMapper, Repository+UnitOfWork, FluentValidation, simulated notifications, dashboard stats, Docker Compose, Serilog).
 - Nghiep vu tra thiet bi: co kiem tra tinh trang tung item. Good/Fair -> Equipment.Available; Damaged -> Maintenance; Lost -> Retired. `ReturnRecord.OverallCondition` = tinh trang xau nhat (Good < Fair < Damaged < Lost) + staff note. Khong co quy trinh sua chua/den bu rieng.
 - KHONG co phi muon, KHONG co phu phi mat/hong (muon mien phi). Mat/hong chi xu ly qua trang thai thiet bi.
+- User management: Admin **activate/deactivate** (`IsActive`), **KHONG xoa** user.
 
 ## 2. Kien truc & cau truc solution
 
@@ -183,6 +184,29 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 7: audit log, soft delete (Section 15).
 
+### 3i. Slice 8 (phan OData) - OData EDM + EnableQuery (DONE, da test chay that)
+OData doc lap cho cac use case KHONG trung REST — khong con /odata/Equipment hay /odata/BorrowRequests.
+
+Files da tao/sua:
+- Api: `OData/EdmModelBuilder.cs`; `OData/EquipmentCategoriesController.cs`, `ReturnRecordsController.cs`, `BorrowRequestItemsController.cs`; cap nhat `Program.cs` (AddOData); csproj (Microsoft.AspNetCore.OData 8.2.5).
+
+Endpoints OData (doc lap voi REST):
+| OData | REST tuong ung | Vi sao OData |
+|---|---|---|
+| GET /odata/EquipmentCategories?$expand=equipments | GET /api/equipment-categories (flat) | Catalog: category + thiet bi nested, filter tren equipments |
+| GET /odata/ReturnRecords?$expand=borrowRequest | Khong co REST list | Lich su tra thiet bi, query Staff/Admin |
+| GET /odata/BorrowRequestItems?$expand=equipment,borrowRequest | Items chi trong /api/borrow-requests/{id} | Truy van cap dong (vd. item tra Damaged) |
+
+Quyen: EquipmentCategories = Authenticated; ReturnRecords + BorrowRequestItems = Admin/Staff.
+Notifications: khong dung OData — Slice 10 REST (`GET/PUT /api/notifications`).
+
+Ket qua test:
+- /odata/Equipment, /odata/BorrowRequests, /odata/Notifications -> 404 (da go).
+- EquipmentCategories $expand=equipments -> ok; ReturnRecords, BorrowRequestItems -> ok.
+- REST /api/equipment van hoat dong.
+
+Phan Slice 8 con lai: XML content negotiation.
+
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
 - .NET 8 (net8.0). LocalDB co san: instance `MSSQLLocalDB`. Connection string trong `appsettings.json`: `Server=(localdb)\mssqllocaldb;Database=EquipmentBorrowingDb;...`.
@@ -237,7 +261,9 @@ Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi s
 - Slice 5 - Borrow workflow: DONE (chi tiet o muc 3f).
 - Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin): DONE (chi tiet o muc 3g).
 - Slice 7 - Cross-cutting bonus: audit log + soft delete: DONE (chi tiet o muc 3h).
-- Slice 8 - OData (2 endpoint: Equipment, BorrowRequests) + XML content negotiation (AddXmlSerializerFormatters + [Produces]/[Consumes]). OData de JSON de tranh xung dot formatter. (TIEP THEO)
+- Slice 8 - OData: DONE (phan OData — muc 3i). XML content negotiation: CHUA LAM.
+- Slice 9 - gRPC: ...
+- Slice 10 - Notifications REST + Users REST (Admin activate/deactivate, NO delete) + vanilla JS client + CORS: (TIEP THEO sau Slice 8 XML / Slice 9)
 - Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
 - Slice 10 - Client vanilla JS: `client/` (login + luu JWT localStorage, list equipment, create/update, gui borrow request, history, xu ly 401/403/404/400) + CORS.
 - Slice 11 - Docker Compose (SQL Server + Api + Grpc) + Dockerfile.
@@ -259,7 +285,7 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-7 DA XONG va test chay duoc. Hay bat dau Slice 8 (OData + XML) theo plan.
+Trang thai: Slice 1-7 DA XONG; Slice 8 OData DA XONG (XML chua lam). Tiep theo: hoan thien Slice 8 XML hoac Slice 9 gRPC.
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

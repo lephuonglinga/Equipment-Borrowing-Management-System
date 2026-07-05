@@ -15,12 +15,14 @@
     </PackageReference>
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.OData" Version="8.2.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Application\EquipmentBorrowingManagementSystem.Application.csproj" />
+    <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Domain\EquipmentBorrowingManagementSystem.Domain.csproj" />
     <ProjectReference Include="..\EquipmentBorrowingManagementSystem.Infrastructure\EquipmentBorrowingManagementSystem.Infrastructure.csproj" />
   </ItemGroup>
 

@@ -1,11 +1,13 @@
 using System.Text;
 using EquipmentBorrowingManagementSystem.Api.Middleware;
+using EquipmentBorrowingManagementSystem.Api.OData;
 using EquipmentBorrowingManagementSystem.Application;
 using EquipmentBorrowingManagementSystem.Infrastructure;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using EquipmentBorrowingManagementSystem.Infrastructure.Seeders;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -16,7 +18,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) =>
     configuration.MinimumLevel.Information().WriteTo.Console());
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .Expand()
+        .Count()
+        .SetMaxTop(100)
+        .AddRouteComponents("odata", EdmModelBuilder.GetEdmModel()));
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

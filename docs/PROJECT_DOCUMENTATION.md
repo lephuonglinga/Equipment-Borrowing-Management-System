@@ -30,7 +30,7 @@ Hệ thống quản lý việc mượn, trả và theo dõi thiết bị trong m
 - **UC-A3 Làm mới token:** refresh token còn hiệu lực & chưa thu hồi; xoay vòng token (cấp mới, vô hiệu cái cũ).
 
 ### Admin
-- **UC-AD1 Quản lý người dùng (CRUD):** gán role, bật/tắt `IsActive`. Nghiệp vụ: chỉ Admin; email unique; không tự xóa/khóa chính mình; xóa là soft delete; không lộ `PasswordHash`.
+- **UC-AD1 Quản lý người dùng:** gán role, bật/tắt `IsActive` (activate/deactivate). Nghiệp vụ: chỉ Admin; email unique; không tự deactivate chính mình; **không xóa user**; không lộ `PasswordHash`.
 - **UC-AD2 Xem audit log:** chỉ đọc; ghi tự động kèm người thực hiện + thời điểm.
 - Admin kế thừa toàn bộ use case của Staff và User.
 
@@ -123,7 +123,9 @@ flowchart LR
 | POST | /api/auth/register | Anonymous |
 | POST | /api/auth/login | Anonymous |
 | POST | /api/auth/refresh | Anonymous |
-| GET/POST/PUT/DELETE | /api/users | Admin |
+| GET/POST/PUT | /api/users | Admin |
+| PUT | /api/users/{id}/deactivate | Admin |
+| PUT | /api/users/{id}/activate | Admin |
 | GET | /api/equipment-categories | Authenticated |
 | POST/PUT/DELETE | /api/equipment-categories | Admin, Staff |
 | GET | /api/equipment | Authenticated (tìm kiếm/lọc/phân trang) |
