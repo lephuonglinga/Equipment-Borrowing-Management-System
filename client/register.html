@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký — EBMS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body class="auth-page">
+
+    <div class="auth-shell">
+        <aside class="auth-brand">
+            <div class="logo-mark"><i class="fa-solid fa-user-plus"></i></div>
+            <h2>Tạo tài khoản User</h2>
+            <p>Đăng ký miễn phí với role <strong>User</strong>. Tài khoản Staff do Admin cấp.</p>
+            <ul class="feature-list">
+                <li><i class="fa-solid fa-shield-halved"></i> Mật khẩu tối thiểu 6 ký tự</li>
+                <li><i class="fa-solid fa-envelope-circle-check"></i> Email phải là duy nhất</li>
+                <li><i class="fa-solid fa-bolt"></i> Đăng ký xong tự động đăng nhập</li>
+            </ul>
+        </aside>
+
+        <main class="auth-main">
+            <div class="auth-topbar">
+                <a href="login.html">Đăng nhập</a>
+                <a href="register.html" class="active">Đăng ký</a>
+            </div>
+
+            <div class="auth-content">
+                <div class="card auth-card">
+                    <div class="card-header">
+                        <h1>Đăng ký</h1>
+                        <p class="subtitle">Điền thông tin để tạo tài khoản mới.</p>
+                    </div>
+
+                    <div id="alertBox" style="display:none;"></div>
+
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="fullName">Họ và tên</label>
+                            <input type="text" id="fullName" required maxlength="200" placeholder="Nguyễn Văn A">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" required maxlength="256" placeholder="you@example.com" autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Mật khẩu</label>
+                            <input type="password" id="password" required minlength="6" maxlength="100"
+                                   placeholder="Tối thiểu 6 ký tự" autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btnRegister">Đăng ký</button>
+                    </form>
+
+                    <div class="form-footer">
+                        Đã có tài khoản?<a href="login.html">Đăng nhập</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            if (getAuth()) {
+                window.location.href = "home.html";
+                return;
+            }
+
+            $("#registerForm").on("submit", function (e) {
+                e.preventDefault();
+                const $alert = $("#alertBox");
+                $alert.hide();
+
+                const $btn = $("#btnRegister");
+                $btn.prop("disabled", true).text("Đang xử lý...");
+
+                apiRequest({
+                    url: "/api/auth/register",
+                    method: "POST",
+                    body: {
+                        fullName: $("#fullName").val().trim(),
+                        email: $("#email").val().trim(),
+                        password: $("#password").val()
+                    }
+                })
+                .done(function (data) {
+                    saveAuth(data);
+                    window.location.href = "home.html";
+                })
+                .fail(function (xhr) {
+                    $alert
+                        .removeClass("alert-success")
+                        .addClass("alert alert-error")
+                        .html('<i class="fa-solid fa-circle-exclamation"></i><span>' + getErrorMessage(xhr) + '</span>')
+                        .show();
+                })
+                .always(function () {
+                    $btn.prop("disabled", false).text("Đăng ký");
+                });
+            });
+        });
+    </script>
+</body>
+</html>

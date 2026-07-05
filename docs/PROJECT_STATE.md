@@ -249,7 +249,26 @@ Ket qua test:
 - Admin self-deactivate -> 400.
 - User role GET /api/users -> 403.
 
-Phan Slice 10 con lai: Notifications REST + vanilla JS client + CORS.
+Phan Slice 10 con lai: Notifications REST + cac trang feature (equipment, borrow, admin users).
+
+### 3l. Slice 10 (phan Client — auth) - Vanilla JS + jQuery (DONE, can test)
+Multi-file HTML (mo truc tiep file://), jQuery CDN + $.ajax theo mau PRN.
+
+Cau truc `client/`:
+- `index.html` -> redirect `login.html`
+- `login.html`, `register.html`, `home.html` (dang nhap thanh cong + logout), `notifications.html` (placeholder)
+- `css/styles.css` (flat, nen trang, palette Deep Oceanic / Mystic Blue / Vanilla Cream)
+- `js/config.js`, `api.js`, `auth.js`
+
+API: `Program.cs` them CORS policy `Client` (AllowAnyOrigin — ho tro file://).
+
+Luong:
+- Login -> JWT localStorage -> `home.html`
+- Register -> auto-login (API tra token) -> `home.html`
+- Logout -> POST /api/auth/logout + xoa localStorage
+
+Chay: mo `client/login.html` (file://); API `http://localhost:5171`.
+Plan FE chi tiet: `.cursor/plans/fe_client_plan.md`.
 
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
