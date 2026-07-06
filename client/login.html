@@ -64,7 +64,7 @@
         $(document).ready(function () {
             const auth = getAuth();
             if (auth && auth.accessToken) {
-                window.location.href = "home.html";
+                window.location.href = "categories.html";
                 return;
             }
             if (auth) {
@@ -99,7 +99,7 @@
                 })
                 .done(function (data) {
                     saveAuth(data);
-                    window.location.href = "home.html";
+                    window.location.href = "categories.html";
                 })
                 .fail(function (xhr) {
                     $alert

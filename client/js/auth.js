@@ -36,6 +36,16 @@ function clearAuth() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
+function isStaffOrAdmin() {
+  const auth = getAuth();
+  return auth && (auth.role === "Staff" || auth.role === "Admin");
+}
+
+function isAdmin() {
+  const auth = getAuth();
+  return auth && auth.role === "Admin";
+}
+
 function requireAuth() {
   const auth = getAuth();
   if (!auth || !auth.accessToken) {
@@ -58,13 +68,16 @@ function logout() {
       url: "/api/auth/logout",
       method: "POST",
       skipAuthRefresh: true,
+      expectEmpty: true,
       body: { refreshToken: auth.refreshToken }
     }).always(function () {
       clearAuth();
+      clearBorrowCart();
       window.location.href = "login.html";
     });
   } else {
     clearAuth();
+    if (typeof clearBorrowCart === "function") clearBorrowCart();
     window.location.href = "login.html";
   }
 }
@@ -75,32 +88,68 @@ function getRoleIcon(role) {
   return "fa-user";
 }
 
+function bindUserMenu() {
+  const $menu = $("#navUserMenu");
+  const $btn = $("#navUserBtn");
+
+  $btn.on("click", function (e) {
+    e.stopPropagation();
+    $menu.toggleClass("open");
+  });
+
+  $(document).on("click", function () {
+    $menu.removeClass("open");
+  });
+
+  $("#btnNavLogout").on("click", function (e) {
+    e.stopPropagation();
+    logout();
+  });
+}
+
 function renderAuthNav(activePage) {
   const auth = getAuth();
   const roleIcon = auth ? getRoleIcon(auth.role) : "fa-user";
+  const staff = isStaffOrAdmin();
+  const admin = isAdmin();
 
-  const html = `
-    <header class="site-header">
-      <div class="brand">
-        <i class="fa-solid fa-toolbox"></i>
-        <span>EBMS</span>
-      </div>
-      <nav>
-        <a href="home.html" class="${activePage === "home" ? "active" : ""}">
-          <i class="fa-solid fa-house"></i> Trang chủ
-        </a>
-        <a href="equipment.html" class="${activePage === "equipment" ? "active" : ""}">
-          <i class="fa-solid fa-toolbox"></i> Equipment
-        </a>
-        <a href="notifications.html" class="${activePage === "notifications" ? "active" : ""}">
-          <i class="fa-regular fa-bell"></i> Notifications
-        </a>
-        <span class="nav-role">
-          <i class="fa-solid ${roleIcon}"></i> ${auth ? auth.role : ""}
-        </span>
-      </nav>
-    </header>
-  `;
+  let staffLinks = "";
+  if (staff) {
+    staffLinks +=
+      '<a href="reports.html" class="nav-staff ' + (activePage === "reports" ? "active" : "") + '"><i class="fa-solid fa-chart-pie"></i> Báo cáo</a>';
+    staffLinks +=
+      '<a href="manage.html" class="nav-staff ' + (activePage === "manage" ? "active" : "") + '"><i class="fa-solid fa-pen-to-square"></i> Quản lý</a>';
+  }
+  if (admin) {
+    staffLinks +=
+      '<a href="users.html" class="nav-staff ' + (activePage === "users" ? "active" : "") + '"><i class="fa-solid fa-users"></i> Users</a>';
+    staffLinks +=
+      '<a href="audit-logs.html" class="nav-staff ' + (activePage === "audit" ? "active" : "") + '"><i class="fa-solid fa-list-check"></i> Audit</a>';
+  }
+
+  const displayName = auth && auth.fullName ? auth.fullName.split(" ")[0] : "User";
+
+  const html =
+    '<header class="site-header">' +
+    '<div class="brand"><a href="categories.html"><i class="fa-solid fa-toolbox"></i><span>EBMS</span></a></div>' +
+    "<nav>" +
+    '<a href="categories.html" class="' + (activePage === "categories" ? "active" : "") + '">Categories</a>' +
+    '<a href="equipment.html" class="' + (activePage === "equipment" ? "active" : "") + '">Equipments</a>' +
+    '<a href="borrow.html" class="' + (activePage === "borrow" ? "active" : "") + '">' +
+    (staff ? "Duyệt mượn" : "Yêu cầu mượn") +
+    "</a>" +
+    staffLinks +
+    '<a href="notifications.html" class="nav-bell ' + (activePage === "notifications" ? "active" : "") + '" title="Thông báo">' +
+    '<i class="fa-regular fa-bell"></i></a>' +
+    '<div class="nav-user-menu" id="navUserMenu">' +
+    '<button type="button" class="nav-user-btn" id="navUserBtn">' +
+    '<i class="fa-solid ' + roleIcon + '"></i> ' + escapeHtml(displayName) + ' <i class="fa-solid fa-chevron-down"></i>' +
+    "</button>" +
+    '<div class="nav-user-dropdown">' +
+    '<button type="button" id="btnNavLogout"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>' +
+    "</div></div>" +
+    "</nav></header>";
 
   $("#siteHeader").html(html);
+  bindUserMenu();
 }

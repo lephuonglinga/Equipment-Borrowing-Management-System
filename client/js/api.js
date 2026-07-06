@@ -49,10 +49,13 @@ function apiRequest(options) {
       headers.Authorization = "Bearer " + currentAuth.accessToken;
     }
 
+    const method = options.method || "GET";
+    const dataType = method === "DELETE" || options.expectEmpty ? "text" : "json";
+
     return $.ajax({
       url: EBMS_CONFIG.API_BASE_URL + options.url,
-      type: options.method || "GET",
-      dataType: "json",
+      type: method,
+      dataType: dataType,
       contentType: options.body ? "application/json" : undefined,
       data: options.body ? JSON.stringify(options.body) : undefined,
       headers: headers

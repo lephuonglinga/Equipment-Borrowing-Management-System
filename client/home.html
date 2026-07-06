@@ -2,81 +2,10 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang chủ — EBMS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
+    <meta http-equiv="refresh" content="0;url=categories.html">
+    <title>EBMS</title>
 </head>
 <body>
-
-    <div id="siteHeader"></div>
-
-    <div class="page-wrap wide">
-        <div class="card card-accent">
-            <div id="welcomeContainer"></div>
-            <div class="actions-row">
-                <button type="button" class="btn btn-danger" id="btnLogout">
-                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function getRoleIcon(role) {
-            if (role === "Admin") return "fa-user-shield";
-            if (role === "Staff") return "fa-user-tie";
-            return "fa-user";
-        }
-
-        function getInitials(name) {
-            if (!name) return "?";
-            const parts = name.trim().split(/\s+/);
-            if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-        }
-
-        $(document).ready(function () {
-            if (!requireAuth()) return;
-
-            renderAuthNav("home");
-
-            const auth = getAuth();
-            const roleIcon = getRoleIcon(auth.role);
-
-            const html = `
-                <div class="welcome-hero">
-                    <div class="avatar">${getInitials(auth.fullName)}</div>
-                    <h1>Đăng nhập thành công</h1>
-                    <p>Xin chào, <strong>${auth.fullName}</strong></p>
-                    <p class="email"><i class="fa-regular fa-envelope"></i> ${auth.email}</p>
-                    <span class="role-badge">
-                        <i class="fa-solid ${roleIcon}"></i> Role: ${auth.role}
-                    </span>
-                </div>
-                <div class="quick-grid">
-                    <div class="quick-tile">
-                        <i class="fa-solid fa-toolbox"></i>
-                        <span><a href="equipment.html">Equipment</a></span>
-                    </div>
-                    <div class="quick-tile coming">
-                        <i class="fa-solid fa-clipboard-list"></i>
-                        <span>Borrow<br><small>Sắp có</small></span>
-                    </div>
-                    <div class="quick-tile">
-                        <i class="fa-solid fa-bell"></i>
-                        <span><a href="notifications.html">Notifications</a></span>
-                    </div>
-                </div>
-            `;
-            $("#welcomeContainer").html(html);
-
-            $("#btnLogout").on("click", logout);
-        });
-    </script>
+    <p>Đang chuyển đến <a href="categories.html">Categories</a>...</p>
 </body>
 </html>

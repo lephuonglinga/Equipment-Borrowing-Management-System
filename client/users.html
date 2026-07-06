@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users — EBMS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/users.js"></script>
+</head>
+<body>
+
+    <div id="siteHeader"></div>
+
+    <div class="page-wrap wide users-page">
+        <div class="card card-accent">
+            <div class="page-header">
+                <div>
+                    <h1>Quản lý Users</h1>
+                    <p class="subtitle">Tạo tài khoản Staff, kích hoạt / vô hiệu hóa (Admin).</p>
+                </div>
+                <button type="button" class="btn btn-primary btn-fit" id="btnAddUser">
+                    <i class="fa-solid fa-user-plus"></i> Tạo Staff
+                </button>
+            </div>
+
+            <div id="userAlert" style="display:none;"></div>
+            <div id="userTableWrap" class="data-table-wrap"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Tạo tài khoản Staff</h2>
+                <button type="button" class="modal-close" data-close>&times;</button>
+            </div>
+            <form id="userForm">
+                <div class="modal-body">
+                    <div id="userFormAlert" style="display:none;"></div>
+                    <div class="form-group">
+                        <label for="userFullName">Họ tên</label>
+                        <input type="text" id="userFullName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userEmail">Email</label>
+                        <input type="email" id="userEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userPassword">Mật khẩu</label>
+                        <input type="password" id="userPassword" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-close>Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

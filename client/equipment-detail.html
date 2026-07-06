@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Equipments — EBMS</title>
+    <title>Chi tiết thiết bị — EBMS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -12,54 +12,22 @@
     <script src="js/borrow-cart.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/equipment.js"></script>
+    <script src="js/equipment-detail.js"></script>
 </head>
 <body>
 
     <div id="siteHeader"></div>
 
     <div class="page-wrap equipment-page">
-        <div class="card card-accent" style="margin-bottom:0;">
-            <div class="card-header">
-                <h1 id="pageTitle">Equipments</h1>
-                <p class="subtitle" id="pageSubtitle">Danh sách thiết bị.</p>
+        <div class="card card-accent">
+            <a href="equipment.html" class="back-link detail-back" id="backLink">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại Equipments
+            </a>
+
+            <div id="detailAlert" style="display:none;"></div>
+            <div id="detailContent">
+                <p class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</p>
             </div>
-
-            <form id="filterForm" class="equipment-toolbar">
-                <input type="hidden" id="pageNumber" value="1">
-                <div class="form-group search-group">
-                    <label for="search">Tìm kiếm</label>
-                    <input type="text" id="search" placeholder="Tên hoặc serial number...">
-                </div>
-                <div class="form-group">
-                    <label for="categoryId">Category</label>
-                    <select id="categoryId">
-                        <option value="">Tất cả</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="status">Status</label>
-                    <select id="status">
-                        <option value="">Tất cả</option>
-                        <option value="Available">Available</option>
-                        <option value="Borrowed">Borrowed</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Retired">Retired</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex:0;">
-                    <label>&nbsp;</label>
-                    <button type="submit" class="btn btn-primary" style="width:auto;min-width:100px;">Lọc</button>
-                </div>
-            </form>
-        </div>
-
-        <div id="equipmentGrid" class="equipment-grid" style="margin-top:24px;"></div>
-
-        <div id="equipmentPager" class="equipment-pagination" style="display:none;">
-            <button type="button" class="btn btn-ghost" id="btnPrev">Trước</button>
-            <span class="page-info" id="pageInfo"></span>
-            <button type="button" class="btn btn-ghost" id="btnNext">Sau</button>
         </div>
     </div>
 
@@ -97,7 +65,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ghost" data-close>Hủy</button>
-                    <button type="submit" class="btn btn-primary" id="btnSubmitBorrow">Gửi yêu cầu</button>
+                    <button type="submit" class="btn btn-primary btn-fit">Gửi yêu cầu</button>
                 </div>
             </form>
         </div>
