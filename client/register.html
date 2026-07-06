@@ -67,9 +67,13 @@
 
     <script>
         $(document).ready(function () {
-            if (getAuth()) {
+            const auth = getAuth();
+            if (auth && auth.accessToken) {
                 window.location.href = "home.html";
                 return;
+            }
+            if (auth) {
+                clearAuth();
             }
 
             $("#registerForm").on("submit", function (e) {
@@ -83,6 +87,7 @@
                 apiRequest({
                     url: "/api/auth/register",
                     method: "POST",
+                    skipAuthRefresh: true,
                     body: {
                         fullName: $("#fullName").val().trim(),
                         email: $("#email").val().trim(),
@@ -97,7 +102,7 @@
                     $alert
                         .removeClass("alert-success")
                         .addClass("alert alert-error")
-                        .html('<i class="fa-solid fa-circle-exclamation"></i><span>' + getErrorMessage(xhr) + '</span>')
+                        .html('<i class="fa-solid fa-circle-exclamation"></i><span>' + getErrorMessage(xhr, "login") + '</span>')
                         .show();
                 })
                 .always(function () {

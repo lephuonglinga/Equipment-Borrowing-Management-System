@@ -10,6 +10,7 @@ public class Equipment : BaseEntity
     public EquipmentStatus Status { get; set; } = EquipmentStatus.Available;
     public string? Location { get; set; }
     public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
 
     public EquipmentCategory Category { get; set; } = null!;
     public ICollection<BorrowRequestItem> BorrowRequestItems { get; set; } = [];

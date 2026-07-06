@@ -74,7 +74,8 @@ public class EquipmentService : IEquipmentService
             CategoryId = dto.CategoryId,
             Status = EquipmentStatus.Available,
             Location = dto.Location,
-            Description = dto.Description
+            Description = dto.Description,
+            ImageUrl = dto.ImageUrl
         };
 
         await _unitOfWork.Equipment.AddAsync(equipment);
@@ -114,6 +115,7 @@ public class EquipmentService : IEquipmentService
         equipment.Status = status;
         equipment.Location = dto.Location;
         equipment.Description = dto.Description;
+        equipment.ImageUrl = dto.ImageUrl;
 
         _unitOfWork.Equipment.Update(equipment);
         await _unitOfWork.SaveChangesAsync();

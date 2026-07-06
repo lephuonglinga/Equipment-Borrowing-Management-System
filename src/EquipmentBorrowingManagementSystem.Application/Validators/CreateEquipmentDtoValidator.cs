@@ -12,5 +12,6 @@ public class CreateEquipmentDtoValidator : AbstractValidator<CreateEquipmentDto>
         RuleFor(x => x.CategoryId).GreaterThan(0);
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(1000);
+        RuleFor(x => x.ImageUrl).MaximumLength(500);
     }
 }

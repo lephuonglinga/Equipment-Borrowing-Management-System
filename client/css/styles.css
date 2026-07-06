@@ -268,6 +268,10 @@ a:hover {
     max-width: 720px;
 }
 
+.page-wrap.equipment-page {
+    max-width: 1100px;
+}
+
 .auth-content {
     flex: 1;
     display: flex;
@@ -616,6 +620,164 @@ a:hover {
     gap: 6px;
     margin-top: 24px;
     font-weight: 500;
+}
+
+/* ── Equipment catalog ── */
+.equipment-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    align-items: flex-end;
+}
+
+.equipment-toolbar .form-group {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 140px;
+}
+
+.equipment-toolbar .form-group.search-group {
+    flex: 2;
+    min-width: 200px;
+}
+
+.equipment-toolbar label {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+}
+
+.equipment-toolbar input,
+.equipment-toolbar select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--deep-oceanic);
+    background: var(--white);
+}
+
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.equipment-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+}
+
+.equipment-card .thumb {
+    position: relative;
+    height: 160px;
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.equipment-card .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.equipment-card .thumb .no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mystic-blue);
+    font-size: 2rem;
+    background: var(--crimson-light);
+}
+
+.equipment-card .body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.equipment-card h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.equipment-card .meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.equipment-card .meta strong {
+    color: var(--deep-oceanic);
+    font-weight: 600;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    align-self: flex-start;
+}
+
+.status-available {
+    background: #E8F4EC;
+    color: #2D6A4F;
+}
+
+.status-borrowed {
+    background: #E8EEF4;
+    color: var(--deep-oceanic);
+}
+
+.status-maintenance {
+    background: var(--vanilla-cream);
+    color: #8B6914;
+}
+
+.status-retired {
+    background: #F0F0F0;
+    color: var(--text-muted);
+}
+
+.equipment-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+}
+
+.equipment-pagination .page-info {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 2rem;
+    color: var(--mystic-blue);
+    margin-bottom: 12px;
 }
 
 /* ── Responsive ── */

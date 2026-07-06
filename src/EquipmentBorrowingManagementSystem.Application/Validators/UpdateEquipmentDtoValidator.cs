@@ -17,5 +17,6 @@ public class UpdateEquipmentDtoValidator : AbstractValidator<UpdateEquipmentDto>
             .WithMessage("Status must be one of: Available, Borrowed, Maintenance, Retired.");
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(1000);
+        RuleFor(x => x.ImageUrl).MaximumLength(500);
     }
 }

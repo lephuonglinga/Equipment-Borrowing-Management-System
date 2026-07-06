@@ -1,14 +1,25 @@
 const AUTH_STORAGE_KEY = "ebms_auth";
 
+function normalizeAuthData(data) {
+  return {
+    accessToken: data.accessToken || data.AccessToken || "",
+    refreshToken: data.refreshToken || data.RefreshToken || "",
+    expiresAt: data.expiresAt || data.ExpiresAt || "",
+    email: data.email || data.Email || "",
+    fullName: data.fullName || data.FullName || "",
+    role: data.role || data.Role || ""
+  };
+}
+
 function saveAuth(data) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-    accessToken: data.accessToken,
-    refreshToken: data.refreshToken,
-    expiresAt: data.expiresAt,
-    email: data.email,
-    fullName: data.fullName,
-    role: data.role
-  }));
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizeAuthData(data)));
+}
+
+function isAccessTokenExpired(auth) {
+  if (!auth || !auth.expiresAt) return false;
+  const expiresAt = new Date(auth.expiresAt).getTime();
+  if (Number.isNaN(expiresAt)) return false;
+  return Date.now() >= expiresAt - 30000;
 }
 
 function getAuth() {
@@ -26,11 +37,18 @@ function clearAuth() {
 }
 
 function requireAuth() {
-  if (!getAuth()) {
+  const auth = getAuth();
+  if (!auth || !auth.accessToken) {
+    clearAuth();
     window.location.href = "login.html";
     return false;
   }
   return true;
+}
+
+function redirectToLoginExpired() {
+  clearAuth();
+  window.location.href = "login.html?expired=1";
 }
 
 function logout() {
@@ -39,6 +57,7 @@ function logout() {
     apiRequest({
       url: "/api/auth/logout",
       method: "POST",
+      skipAuthRefresh: true,
       body: { refreshToken: auth.refreshToken }
     }).always(function () {
       clearAuth();
@@ -69,6 +88,9 @@ function renderAuthNav(activePage) {
       <nav>
         <a href="home.html" class="${activePage === "home" ? "active" : ""}">
           <i class="fa-solid fa-house"></i> Trang chủ
+        </a>
+        <a href="equipment.html" class="${activePage === "equipment" ? "active" : ""}">
+          <i class="fa-solid fa-toolbox"></i> Equipment
         </a>
         <a href="notifications.html" class="${activePage === "notifications" ? "active" : ""}">
           <i class="fa-regular fa-bell"></i> Notifications

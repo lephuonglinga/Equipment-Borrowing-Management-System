@@ -62,9 +62,22 @@
 
     <script>
         $(document).ready(function () {
-            if (getAuth()) {
+            const auth = getAuth();
+            if (auth && auth.accessToken) {
                 window.location.href = "home.html";
                 return;
+            }
+            if (auth) {
+                clearAuth();
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("expired") === "1") {
+                $("#alertBox")
+                    .removeClass("alert-success")
+                    .addClass("alert alert-error")
+                    .html('<i class="fa-solid fa-circle-exclamation"></i><span>Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.</span>')
+                    .show();
             }
 
             $("#loginForm").on("submit", function (e) {
@@ -78,6 +91,7 @@
                 apiRequest({
                     url: "/api/auth/login",
                     method: "POST",
+                    skipAuthRefresh: true,
                     body: {
                         email: $("#email").val().trim(),
                         password: $("#password").val()
@@ -91,7 +105,7 @@
                     $alert
                         .removeClass("alert-success")
                         .addClass("alert alert-error")
-                        .html('<i class="fa-solid fa-circle-exclamation"></i><span>' + getErrorMessage(xhr) + '</span>')
+                        .html('<i class="fa-solid fa-circle-exclamation"></i><span>' + getErrorMessage(xhr, "login") + '</span>')
                         .show();
                 })
                 .always(function () {

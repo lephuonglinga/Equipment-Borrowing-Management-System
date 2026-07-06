@@ -61,6 +61,8 @@ public static class DbInitializer
         context.EquipmentCategories.AddRange(categories);
         await context.SaveChangesAsync();
 
+        // ImageUrl: để null nếu chưa có ảnh (web hiện ảnh mặc định).
+        // Có ảnh thật thì gán URL, ví dụ: ImageUrl = "https://example.com/dell-latitude.jpg"
         var equipments = new List<Equipment>
         {
             new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = seedTime },

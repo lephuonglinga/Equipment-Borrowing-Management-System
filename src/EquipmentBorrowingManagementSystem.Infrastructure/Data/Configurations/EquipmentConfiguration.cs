@@ -17,6 +17,7 @@ public class EquipmentConfiguration : IEntityTypeConfiguration<Equipment>
         builder.Property(e => e.Status).HasConversion<int>();
         builder.Property(e => e.Location).HasMaxLength(200);
         builder.Property(e => e.Description).HasMaxLength(1000);
+        builder.Property(e => e.ImageUrl).HasMaxLength(500);
 
         builder.HasOne(e => e.Category)
             .WithMany(c => c.Equipments)
