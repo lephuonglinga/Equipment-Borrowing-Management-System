@@ -138,11 +138,15 @@ public class ReportRepository : IReportRepository
                 ((b.Status == BorrowRequestStatus.Approved || b.Status == BorrowRequestStatus.InProgress) &&
                  b.ExpectedReturnDate.Date < today));
 
-        var damagedReturnCount = await _context.BorrowRequestItems
+        var damagedEquipmentCount = await _context.Equipments
             .AsNoTracking()
-            .CountAsync(i =>
-                i.ConditionAtReturn == EquipmentCondition.Damaged ||
-                i.ConditionAtReturn == EquipmentCondition.Lost);
+            .CountAsync(e =>
+                e.Status != EquipmentStatus.Compensated &&
+                e.CurrentCondition == EquipmentCondition.Damaged);
+
+        var lostEquipmentCount = await _context.Equipments
+            .AsNoTracking()
+            .CountAsync(e => e.Status == EquipmentStatus.Lost);
 
         var maintenanceCount = equipmentCounts
             .Where(e => e.Status == EquipmentStatus.Maintenance)
@@ -199,7 +203,8 @@ public class ReportRepository : IReportRepository
             },
             BorrowRequestsByStatus = borrowStatusCounts,
             OverdueRequestCount = overdueCount,
-            DamagedReturnItemCount = damagedReturnCount,
+            DamagedEquipmentCount = damagedEquipmentCount,
+            LostEquipmentCount = lostEquipmentCount,
             MaintenanceEquipmentCount = maintenanceCount,
             MostBorrowedEquipment = mostBorrowed
         };

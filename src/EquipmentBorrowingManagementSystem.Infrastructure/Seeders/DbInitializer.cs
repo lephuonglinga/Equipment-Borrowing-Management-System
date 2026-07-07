@@ -61,29 +61,24 @@ public static class DbInitializer
         context.EquipmentCategories.AddRange(categories);
         await context.SaveChangesAsync();
 
-        // ImageUrl: để null nếu chưa có ảnh (web hiện ảnh mặc định).
-        // Có ảnh thật thì gán URL, ví dụ: ImageUrl = "https://example.com/dell-latitude.jpg"
         var equipments = new List<Equipment>
         {
-            new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = seedTime },
-            new() { Name = "MacBook Pro 14", SerialNumber = "LAP-002", CategoryId = categories[0].Id, Status = EquipmentStatus.Borrowed, Location = "Room A1", CreatedAt = seedTime },
-            new() { Name = "HP EliteBook", SerialNumber = "LAP-003", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A2", CreatedAt = seedTime },
-            new() { Name = "Canon EOS R10", SerialNumber = "CAM-001", CategoryId = categories[1].Id, Status = EquipmentStatus.Available, Location = "Room B1", CreatedAt = seedTime },
-            new() { Name = "Sony A7 III", SerialNumber = "CAM-002", CategoryId = categories[1].Id, Status = EquipmentStatus.Maintenance, Location = "Repair", CreatedAt = seedTime },
-            new() { Name = "Shure SM58", SerialNumber = "AUD-001", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = seedTime },
-            new() { Name = "JBL Speaker", SerialNumber = "AUD-002", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = seedTime },
-            new() { Name = "Epson EB-X49", SerialNumber = "PRJ-001", CategoryId = categories[3].Id, Status = EquipmentStatus.Borrowed, Location = "Room D1", CreatedAt = seedTime },
-            new() { Name = "BenQ MH535A", SerialNumber = "PRJ-002", CategoryId = categories[3].Id, Status = EquipmentStatus.Available, Location = "Room D2", CreatedAt = seedTime },
-            new() { Name = "Digital Multimeter", SerialNumber = "TOL-001", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = seedTime },
-            new() { Name = "Oscilloscope", SerialNumber = "TOL-002", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = seedTime },
-            new() { Name = "Lenovo ThinkPad", SerialNumber = "LAP-004", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A2", CreatedAt = seedTime }
+            new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room A1", CreatedAt = seedTime },
+            new() { Name = "MacBook Pro 14", SerialNumber = "LAP-002", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room A1", CreatedAt = seedTime },
+            new() { Name = "HP EliteBook", SerialNumber = "LAP-003", CategoryId = categories[0].Id, Status = EquipmentStatus.Reserved, CurrentCondition = EquipmentCondition.Good, Location = "Room A2", CreatedAt = seedTime },
+            new() { Name = "Canon EOS R10", SerialNumber = "CAM-001", CategoryId = categories[1].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room B1", CreatedAt = seedTime },
+            new() { Name = "Sony A7 III", SerialNumber = "CAM-002", CategoryId = categories[1].Id, Status = EquipmentStatus.Maintenance, CurrentCondition = EquipmentCondition.Fair, Location = "Repair", CreatedAt = seedTime },
+            new() { Name = "Shure SM58", SerialNumber = "AUD-001", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room C1", CreatedAt = seedTime },
+            new() { Name = "JBL Speaker", SerialNumber = "AUD-002", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Fair, Location = "Room C1", CreatedAt = seedTime },
+            new() { Name = "Epson EB-X49", SerialNumber = "PRJ-001", CategoryId = categories[3].Id, Status = EquipmentStatus.Borrowed, CurrentCondition = EquipmentCondition.Good, Location = "Room D1", CreatedAt = seedTime },
+            new() { Name = "BenQ MH535A", SerialNumber = "PRJ-002", CategoryId = categories[3].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room D2", CreatedAt = seedTime },
+            new() { Name = "Digital Multimeter", SerialNumber = "TOL-001", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Lab 1", CreatedAt = seedTime },
+            new() { Name = "Oscilloscope", SerialNumber = "TOL-002", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Lab 1", CreatedAt = seedTime },
+            new() { Name = "Lenovo ThinkPad", SerialNumber = "LAP-004", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room A2", CreatedAt = seedTime }
         };
 
         context.Equipments.AddRange(equipments);
         await context.SaveChangesAsync();
-
-        var laptopBorrowed = equipments[1];
-        var projectorBorrowed = equipments[7];
 
         var pendingRequest = new BorrowRequest
         {
@@ -103,7 +98,7 @@ public static class DbInitializer
             BorrowDate = seedTime.AddDays(6),
             ExpectedReturnDate = seedTime.AddDays(20),
             Status = BorrowRequestStatus.Approved,
-            Purpose = "Field recording session",
+            Purpose = "Field recording session — chờ bàn giao",
             ApprovedById = staff.Id,
             ApprovedAt = seedTime.AddDays(5).AddHours(2),
             CreatedAt = seedTime.AddDays(5)
@@ -158,15 +153,13 @@ public static class DbInitializer
                 BorrowRequestId = pendingRequest.Id,
                 EquipmentId = equipments[3].Id,
                 Quantity = 1,
-                ConditionAtBorrow = EquipmentCondition.Good,
                 CreatedAt = seedTime.AddDays(10)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = approvedRequest.Id,
-                EquipmentId = laptopBorrowed.Id,
+                EquipmentId = equipments[2].Id,
                 Quantity = 1,
-                ConditionAtBorrow = EquipmentCondition.Good,
                 CreatedAt = seedTime.AddDays(5)
             },
             new BorrowRequestItem
@@ -188,9 +181,10 @@ public static class DbInitializer
             new BorrowRequestItem
             {
                 BorrowRequestId = overdueRequest.Id,
-                EquipmentId = projectorBorrowed.Id,
+                EquipmentId = equipments[7].Id,
                 Quantity = 1,
                 ConditionAtBorrow = EquipmentCondition.Good,
+                HandoverNote = "Đủ phụ kiện",
                 CreatedAt = seedTime.AddDays(-10)
             }
         );

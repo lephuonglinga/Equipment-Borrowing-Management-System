@@ -48,6 +48,15 @@ public class BorrowRequestRepository : GenericRepository<BorrowRequest>, IBorrow
             b.UserId == userId && b.Status == BorrowRequestStatus.Overdue);
     }
 
+    public async Task<List<BorrowRequest>> GetExpiredApprovedAsync(DateTime utcToday)
+    {
+        return await Context.BorrowRequests
+            .Include(b => b.Items)
+            .ThenInclude(i => i.Equipment)
+            .Where(b => b.Status == BorrowRequestStatus.Approved && b.BorrowDate.Date < utcToday.Date)
+            .ToListAsync();
+    }
+
     private IQueryable<BorrowRequest> BuildDetailsQuery()
     {
         return Context.BorrowRequests

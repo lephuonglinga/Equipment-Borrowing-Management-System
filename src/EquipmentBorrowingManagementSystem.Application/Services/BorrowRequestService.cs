@@ -34,8 +34,10 @@ public class BorrowRequestService : IBorrowRequestService
     {
         if (_currentUser.UserId == null)
         {
-            return Result<List<BorrowRequestDto>>.Fail("Unauthorized.", StatusCodes.Status401Unauthorized);
+            return Result<List<BorrowRequestDto>>.Fail("Phiên đăng nhập không hợp lệ.", StatusCodes.Status401Unauthorized);
         }
+
+        await ProcessExpiredApprovalsAsync();
 
         var requests = IsStaffOrAdmin(_currentUser.Role)
             ? await _unitOfWork.BorrowRequests.GetAllWithDetailsAsync()
@@ -46,15 +48,17 @@ public class BorrowRequestService : IBorrowRequestService
 
     public async Task<Result<BorrowRequestDto>> GetByIdAsync(int id)
     {
+        await ProcessExpiredApprovalsAsync();
+
         var request = await _unitOfWork.BorrowRequests.GetByIdWithDetailsAsync(id);
         if (request == null)
         {
-            return Result<BorrowRequestDto>.Fail("Borrow request not found.", StatusCodes.Status404NotFound);
+            return Result<BorrowRequestDto>.Fail("Không tìm thấy yêu cầu mượn.", StatusCodes.Status404NotFound);
         }
 
         if (!CanAccessRequest(request))
         {
-            return Result<BorrowRequestDto>.Fail("Forbidden.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Bạn không có quyền xem yêu cầu này.", StatusCodes.Status403Forbidden);
         }
 
         return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(request));
@@ -64,20 +68,20 @@ public class BorrowRequestService : IBorrowRequestService
     {
         if (_currentUser.UserId == null)
         {
-            return Result<BorrowRequestDto>.Fail("Unauthorized.", StatusCodes.Status401Unauthorized);
+            return Result<BorrowRequestDto>.Fail("Phiên đăng nhập không hợp lệ.", StatusCodes.Status401Unauthorized);
         }
 
         if (dto.ExpectedReturnDate.Date < dto.BorrowDate.Date)
         {
             return Result<BorrowRequestDto>.Fail(
-                "Expected return date must be on or after borrow date.",
+                ValidationMessages.ReturnAfterBorrow,
                 StatusCodes.Status400BadRequest);
         }
 
         if (await _unitOfWork.BorrowRequests.UserHasOverdueRequestAsync(_currentUser.UserId.Value))
         {
             return Result<BorrowRequestDto>.Fail(
-                "You have an overdue borrow request and cannot create a new one.",
+                "Bạn đang có yêu cầu mượn quá hạn, không thể tạo yêu cầu mới.",
                 StatusCodes.Status400BadRequest);
         }
 
@@ -85,7 +89,7 @@ public class BorrowRequestService : IBorrowRequestService
         if (equipmentIds.Count != equipmentIds.Distinct().Count())
         {
             return Result<BorrowRequestDto>.Fail(
-                "Duplicate equipment in the same request is not allowed.",
+                ValidationMessages.DuplicateEquipmentInRequest,
                 StatusCodes.Status400BadRequest);
         }
 
@@ -96,16 +100,26 @@ public class BorrowRequestService : IBorrowRequestService
             if (equipment == null)
             {
                 return Result<BorrowRequestDto>.Fail(
-                    $"Equipment {itemDto.EquipmentId} not found.",
+                    $"Không tìm thấy thiết bị #{itemDto.EquipmentId}.",
                     StatusCodes.Status404NotFound);
             }
 
-            if (equipment.Status != EquipmentStatus.Available)
+            if (!EquipmentRules.IsBorrowable(equipment.Status, equipment.CurrentCondition))
             {
                 return Result<BorrowRequestDto>.Fail(
-                    $"Equipment '{equipment.Name}' is not available.",
+                    DescribeUnavailableEquipment(equipment),
                     StatusCodes.Status400BadRequest);
             }
+
+            if (await _unitOfWork.Equipment.HasActiveBorrowingsAsync(itemDto.EquipmentId))
+            {
+                return Result<BorrowRequestDto>.Fail(
+                    $"Thiết bị '{equipment.Name}' đã nằm trong yêu cầu mượn đang xử lý.",
+                    StatusCodes.Status400BadRequest);
+            }
+
+            equipment.Status = EquipmentStatus.Reserved;
+            _unitOfWork.Equipment.Update(equipment);
 
             items.Add(new BorrowRequestItem
             {
@@ -132,38 +146,52 @@ public class BorrowRequestService : IBorrowRequestService
         return Result<BorrowRequestDto>.Created(_mapper.Map<BorrowRequestDto>(created));
     }
 
-    public async Task<Result<BorrowRequestDto>> ApproveAsync(int id)
+    public async Task<Result<BorrowRequestDto>> UpdateAsync(int id, UpdateBorrowRequestDto dto)
+    {
+        if (!Enum.TryParse<BorrowRequestStatus>(dto.Status, ignoreCase: true, out var targetStatus))
+        {
+            return Result<BorrowRequestDto>.Fail(ValidationMessages.BorrowStatusInvalid, StatusCodes.Status400BadRequest);
+        }
+
+        return targetStatus switch
+        {
+            BorrowRequestStatus.Approved => await ApproveAsync(id),
+            BorrowRequestStatus.Rejected => await RejectAsync(id, dto.RejectReason ?? string.Empty),
+            BorrowRequestStatus.Cancelled => await CancelAsync(id),
+            BorrowRequestStatus.InProgress => await HandoverAsync(id, dto),
+            BorrowRequestStatus.Completed => await ReturnAsync(id, dto),
+            _ => Result<BorrowRequestDto>.Fail("Chuyển trạng thái không được hỗ trợ.", StatusCodes.Status400BadRequest)
+        };
+    }
+
+    private async Task<Result<BorrowRequestDto>> ApproveAsync(int id)
     {
         if (!IsStaffOrAdmin(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Forbidden.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được duyệt yêu cầu.", StatusCodes.Status403Forbidden);
         }
 
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
         if (request == null)
         {
-            return Result<BorrowRequestDto>.Fail("Borrow request not found.", StatusCodes.Status404NotFound);
+            return Result<BorrowRequestDto>.Fail("Không tìm thấy yêu cầu mượn.", StatusCodes.Status404NotFound);
         }
 
         if (request.Status != BorrowRequestStatus.Pending)
         {
             return Result<BorrowRequestDto>.Fail(
-                "Only pending requests can be approved.",
+                "Chỉ có thể duyệt yêu cầu đang ở trạng thái Pending.",
                 StatusCodes.Status400BadRequest);
         }
 
         foreach (var item in request.Items)
         {
-            if (item.Equipment.Status != EquipmentStatus.Available)
+            if (item.Equipment.Status != EquipmentStatus.Reserved)
             {
                 return Result<BorrowRequestDto>.Fail(
-                    $"Equipment '{item.Equipment.Name}' is no longer available.",
+                    $"Thiết bị '{item.Equipment.Name}' không còn ở trạng thái Reserved cho yêu cầu này.",
                     StatusCodes.Status400BadRequest);
             }
-
-            item.ConditionAtBorrow = EquipmentCondition.Good;
-            item.Equipment.Status = EquipmentStatus.Borrowed;
-            _unitOfWork.Equipment.Update(item.Equipment);
         }
 
         request.Status = BorrowRequestStatus.Approved;
@@ -174,7 +202,7 @@ public class BorrowRequestService : IBorrowRequestService
         await _notificationService.NotifyAsync(
             request.UserId,
             "Borrow request approved",
-            $"Your borrow request #{request.Id} has been approved.",
+            $"Your borrow request #{request.Id} has been approved. Please pick up equipment by {request.BorrowDate:yyyy-MM-dd}.",
             NotificationType.RequestApproved);
 
         await _unitOfWork.SaveChangesAsync();
@@ -183,28 +211,89 @@ public class BorrowRequestService : IBorrowRequestService
         return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(updated));
     }
 
-    public async Task<Result<BorrowRequestDto>> RejectAsync(int id, RejectBorrowRequestDto dto)
+    private async Task<Result<BorrowRequestDto>> HandoverAsync(int id, UpdateBorrowRequestDto dto)
     {
         if (!IsStaffOrAdmin(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Forbidden.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được bàn giao thiết bị.", StatusCodes.Status403Forbidden);
         }
 
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
         if (request == null)
         {
-            return Result<BorrowRequestDto>.Fail("Borrow request not found.", StatusCodes.Status404NotFound);
+            return Result<BorrowRequestDto>.Fail("Không tìm thấy yêu cầu mượn.", StatusCodes.Status404NotFound);
+        }
+
+        if (request.Status != BorrowRequestStatus.Approved)
+        {
+            return Result<BorrowRequestDto>.Fail(
+                "Chỉ bàn giao được yêu cầu đã duyệt và đang chờ nhận thiết bị.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        var handoverMap = ParseHandoverMap(dto.Items ?? [], out var parseError);
+        if (parseError != null)
+        {
+            return Result<BorrowRequestDto>.Fail(parseError, StatusCodes.Status400BadRequest);
+        }
+
+        var requestEquipmentIds = request.Items.Select(i => i.EquipmentId).ToHashSet();
+        if (!requestEquipmentIds.SetEquals(handoverMap.Keys))
+        {
+            return Result<BorrowRequestDto>.Fail(
+                "Danh sách bàn giao phải khớp toàn bộ thiết bị trong yêu cầu.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        foreach (var item in request.Items)
+        {
+            var (condition, note) = handoverMap[item.EquipmentId];
+            if (item.Equipment.Status != EquipmentStatus.Reserved)
+            {
+                return Result<BorrowRequestDto>.Fail(
+                    $"Thiết bị '{item.Equipment.Name}' không ở trạng thái Reserved.",
+                    StatusCodes.Status400BadRequest);
+            }
+
+            item.ConditionAtBorrow = condition;
+            item.HandoverNote = note;
+            item.Equipment.Status = EquipmentStatus.Borrowed;
+            item.Equipment.CurrentCondition = condition;
+            _unitOfWork.Equipment.Update(item.Equipment);
+        }
+
+        request.Status = BorrowRequestStatus.InProgress;
+        _unitOfWork.BorrowRequests.Update(request);
+        await _unitOfWork.SaveChangesAsync();
+
+        var updated = await _unitOfWork.BorrowRequests.GetByIdWithDetailsAsync(id);
+        return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(updated));
+    }
+
+    private async Task<Result<BorrowRequestDto>> RejectAsync(int id, string rejectReason)
+    {
+        if (!IsStaffOrAdmin(_currentUser.Role))
+        {
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được từ chối yêu cầu.", StatusCodes.Status403Forbidden);
+        }
+
+        var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
+        if (request == null)
+        {
+            return Result<BorrowRequestDto>.Fail("Không tìm thấy yêu cầu mượn.", StatusCodes.Status404NotFound);
         }
 
         if (request.Status != BorrowRequestStatus.Pending)
         {
             return Result<BorrowRequestDto>.Fail(
-                "Only pending requests can be rejected.",
+                "Chỉ có thể từ chối yêu cầu đang ở trạng thái Pending.",
                 StatusCodes.Status400BadRequest);
         }
 
+        ReleaseReservedEquipment(request, _unitOfWork);
+
         request.Status = BorrowRequestStatus.Rejected;
-        request.RejectReason = dto.RejectReason;
+        request.RejectReason = rejectReason;
         request.ApprovedById = _currentUser.UserId;
         request.ApprovedAt = DateTime.UtcNow;
         _unitOfWork.BorrowRequests.Update(request);
@@ -212,7 +301,7 @@ public class BorrowRequestService : IBorrowRequestService
         await _notificationService.NotifyAsync(
             request.UserId,
             "Borrow request rejected",
-            $"Your borrow request #{request.Id} was rejected. Reason: {dto.RejectReason}",
+            $"Your borrow request #{request.Id} was rejected. Reason: {rejectReason}",
             NotificationType.RequestRejected);
 
         await _unitOfWork.SaveChangesAsync();
@@ -221,7 +310,7 @@ public class BorrowRequestService : IBorrowRequestService
         return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(updated));
     }
 
-    public async Task<Result<BorrowRequestDto>> CancelAsync(int id)
+    private async Task<Result<BorrowRequestDto>> CancelAsync(int id)
     {
         if (_currentUser.UserId == null)
         {
@@ -231,20 +320,22 @@ public class BorrowRequestService : IBorrowRequestService
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
         if (request == null)
         {
-            return Result<BorrowRequestDto>.Fail("Borrow request not found.", StatusCodes.Status404NotFound);
+            return Result<BorrowRequestDto>.Fail("Không tìm thấy yêu cầu mượn.", StatusCodes.Status404NotFound);
         }
 
         if (request.UserId != _currentUser.UserId.Value)
         {
-            return Result<BorrowRequestDto>.Fail("Forbidden.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Bạn chỉ có thể hủy yêu cầu mượn của chính mình.", StatusCodes.Status403Forbidden);
         }
 
-        if (request.Status != BorrowRequestStatus.Pending)
+        if (request.Status is not (BorrowRequestStatus.Pending or BorrowRequestStatus.Approved))
         {
             return Result<BorrowRequestDto>.Fail(
-                "Only pending requests can be cancelled.",
+                "Chỉ hủy được yêu cầu Pending hoặc Approved (chưa bàn giao).",
                 StatusCodes.Status400BadRequest);
         }
+
+        ReleaseReservedEquipment(request, _unitOfWork);
 
         request.Status = BorrowRequestStatus.Cancelled;
         _unitOfWork.BorrowRequests.Update(request);
@@ -254,11 +345,11 @@ public class BorrowRequestService : IBorrowRequestService
         return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(updated));
     }
 
-    public async Task<Result<BorrowRequestDto>> ReturnAsync(int id, ReturnBorrowRequestDto dto)
+    private async Task<Result<BorrowRequestDto>> ReturnAsync(int id, UpdateBorrowRequestDto dto)
     {
         if (!IsStaffOrAdmin(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Forbidden.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được ghi nhận trả thiết bị.", StatusCodes.Status403Forbidden);
         }
 
         if (_currentUser.UserId == null)
@@ -269,43 +360,38 @@ public class BorrowRequestService : IBorrowRequestService
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
         if (request == null)
         {
-            return Result<BorrowRequestDto>.Fail("Borrow request not found.", StatusCodes.Status404NotFound);
+            return Result<BorrowRequestDto>.Fail("Không tìm thấy yêu cầu mượn.", StatusCodes.Status404NotFound);
         }
 
-        if (request.Status is not (BorrowRequestStatus.Approved or BorrowRequestStatus.InProgress or BorrowRequestStatus.Overdue))
+        if (request.Status is not (BorrowRequestStatus.InProgress or BorrowRequestStatus.Overdue))
         {
             return Result<BorrowRequestDto>.Fail(
-                "Only approved, in-progress, or overdue requests can be returned.",
+                "Chỉ ghi nhận trả được yêu cầu InProgress hoặc Overdue.",
                 StatusCodes.Status400BadRequest);
         }
 
-        var returnMap = new Dictionary<int, EquipmentCondition>();
-        foreach (var itemDto in dto.Items)
+        var returnMap = ParseReturnMap(dto.Items ?? [], out var parseError);
+        if (parseError != null)
         {
-            if (!Enum.TryParse<EquipmentCondition>(itemDto.ConditionAtReturn, ignoreCase: true, out var condition))
-            {
-                return Result<BorrowRequestDto>.Fail(
-                    "Invalid return condition.",
-                    StatusCodes.Status400BadRequest);
-            }
-
-            returnMap[itemDto.EquipmentId] = condition;
+            return Result<BorrowRequestDto>.Fail(parseError, StatusCodes.Status400BadRequest);
         }
 
         var requestEquipmentIds = request.Items.Select(i => i.EquipmentId).ToHashSet();
         if (!requestEquipmentIds.SetEquals(returnMap.Keys))
         {
             return Result<BorrowRequestDto>.Fail(
-                "Return items must match all equipment in the borrow request.",
+                "Danh sách trả phải khớp toàn bộ thiết bị trong yêu cầu.",
                 StatusCodes.Status400BadRequest);
         }
 
         var worstCondition = EquipmentCondition.Good;
         foreach (var item in request.Items)
         {
-            var condition = returnMap[item.EquipmentId];
+            var (condition, note) = returnMap[item.EquipmentId];
             item.ConditionAtReturn = condition;
-            item.Equipment.Status = MapReturnConditionToEquipmentStatus(condition);
+            item.ReturnNote = note;
+            item.Equipment.Status = EquipmentRules.MapReturnConditionToStatus(condition);
+            item.Equipment.CurrentCondition = condition;
             _unitOfWork.Equipment.Update(item.Equipment);
 
             if (condition > worstCondition)
@@ -336,6 +422,100 @@ public class BorrowRequestService : IBorrowRequestService
         return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(updated));
     }
 
+    public async Task ProcessExpiredApprovalsAsync()
+    {
+        var today = DateTime.UtcNow.Date;
+        var expired = await _unitOfWork.BorrowRequests.GetExpiredApprovedAsync(today);
+        if (expired.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var request in expired)
+        {
+            ReleaseReservedEquipment(request, _unitOfWork);
+            request.Status = BorrowRequestStatus.Cancelled;
+            _unitOfWork.BorrowRequests.Update(request);
+
+            await _notificationService.NotifyAsync(
+                request.UserId,
+                "Borrow request auto-cancelled",
+                $"Your borrow request #{request.Id} was cancelled because equipment was not picked up by {request.BorrowDate:yyyy-MM-dd}.",
+                NotificationType.RequestRejected);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    private static Dictionary<int, (EquipmentCondition Condition, string? Note)> ParseHandoverMap(
+        List<UpdateBorrowRequestItemDto> items,
+        out string? error)
+    {
+        error = null;
+        var map = new Dictionary<int, (EquipmentCondition, string?)>();
+        foreach (var itemDto in items)
+        {
+            if (!Enum.TryParse<EquipmentCondition>(itemDto.ConditionAtBorrow, ignoreCase: true, out var condition) ||
+                !EquipmentRules.IsHandoverCondition(condition))
+            {
+                error = ValidationMessages.HandoverConditionInvalid;
+                return map;
+            }
+
+            map[itemDto.EquipmentId] = (condition, itemDto.Note?.Trim());
+        }
+
+        return map;
+    }
+
+    private static Dictionary<int, (EquipmentCondition Condition, string? Note)> ParseReturnMap(
+        List<UpdateBorrowRequestItemDto> items,
+        out string? error)
+    {
+        error = null;
+        var map = new Dictionary<int, (EquipmentCondition, string?)>();
+        foreach (var itemDto in items)
+        {
+            if (!Enum.TryParse<EquipmentCondition>(itemDto.ConditionAtReturn, ignoreCase: true, out var condition) ||
+                !EquipmentRules.IsReturnCondition(condition))
+            {
+                error = ValidationMessages.ReturnConditionInvalid;
+                return map;
+            }
+
+            map[itemDto.EquipmentId] = (condition, itemDto.Note?.Trim());
+        }
+
+        return map;
+    }
+
+    private static string DescribeUnavailableEquipment(Equipment equipment)
+    {
+        if (equipment.Status == EquipmentStatus.Reserved)
+        {
+            return $"Thiết bị '{equipment.Name}' đã được giữ chỗ (Reserved) trong yêu cầu mượn khác.";
+        }
+
+        if (equipment.Status != EquipmentStatus.Available)
+        {
+            return $"Thiết bị '{equipment.Name}' không khả dụng (trạng thái: {equipment.Status}).";
+        }
+
+        return $"Thiết bị '{equipment.Name}' không đủ điều kiện mượn (tình trạng: {equipment.CurrentCondition}).";
+    }
+
+    private static void ReleaseReservedEquipment(BorrowRequest request, IUnitOfWork unitOfWork)
+    {
+        foreach (var item in request.Items)
+        {
+            if (item.Equipment.Status == EquipmentStatus.Reserved)
+            {
+                item.Equipment.Status = EquipmentStatus.Available;
+                unitOfWork.Equipment.Update(item.Equipment);
+            }
+        }
+    }
+
     private bool CanAccessRequest(BorrowRequest request)
     {
         if (_currentUser.UserId == null)
@@ -348,13 +528,4 @@ public class BorrowRequestService : IBorrowRequestService
 
     private static bool IsStaffOrAdmin(string? role) =>
         role is Roles.Admin or Roles.Staff;
-
-    private static EquipmentStatus MapReturnConditionToEquipmentStatus(EquipmentCondition condition) =>
-        condition switch
-        {
-            EquipmentCondition.Good or EquipmentCondition.Fair => EquipmentStatus.Available,
-            EquipmentCondition.Damaged => EquipmentStatus.Maintenance,
-            EquipmentCondition.Lost => EquipmentStatus.Retired,
-            _ => EquipmentStatus.Available
-        };
 }

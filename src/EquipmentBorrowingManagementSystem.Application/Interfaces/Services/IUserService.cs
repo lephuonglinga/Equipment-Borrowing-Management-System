@@ -8,6 +8,5 @@ public interface IUserService
     Task<Result<List<UserDto>>> GetAllAsync();
     Task<Result<UserDto>> GetByIdAsync(int id);
     Task<Result<UserDto>> CreateAsync(CreateUserDto dto);
-    Task<Result<UserDto>> DeactivateAsync(int id);
-    Task<Result<UserDto>> ActivateAsync(int id);
+    Task<Result<UserDto>> UpdateAsync(int id, UpdateUserDto dto);
 }

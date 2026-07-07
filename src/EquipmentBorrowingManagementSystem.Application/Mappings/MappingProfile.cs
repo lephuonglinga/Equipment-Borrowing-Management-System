@@ -15,7 +15,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CategoryName,
                 opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
             .ForMember(dest => dest.Status,
-                opt => opt.MapFrom(src => src.Status.ToString()));
+                opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.CurrentCondition,
+                opt => opt.MapFrom(src => src.CurrentCondition.ToString()));
 
         CreateMap<EquipmentCategory, EquipmentCategoryDto>();
 

@@ -13,9 +13,17 @@
 - Client: HTML + CSS + vanilla JavaScript (fetch), bat CORS.
 - Inter-service: gRPC `NotificationService` (project rieng, API goi khi approve/reject/return; goi non-blocking, loi thi van thanh cong + log).
 - Bonus: lam TAT CA Section 15 (refresh token, audit log, soft delete, pagination chuan hoa, global exception handling, Result wrapper, AutoMapper, Repository+UnitOfWork, FluentValidation, simulated notifications, dashboard stats, Docker Compose, Serilog).
-- Nghiep vu tra thiet bi: co kiem tra tinh trang tung item. Good/Fair -> Equipment.Available; Damaged -> Maintenance; Lost -> Retired. `ReturnRecord.OverallCondition` = tinh trang xau nhat (Good < Fair < Damaged < Lost) + staff note. Khong co quy trinh sua chua/den bu rieng.
-- KHONG co phi muon, KHONG co phu phi mat/hong (muon mien phi). Mat/hong chi xu ly qua trang thai thiet bi.
-- User management: Admin **activate/deactivate** (`IsActive`), **KHONG xoa** user.
+- Nghiep vu muon/tra (Plan A — da implement):
+  - Duyet -> thiet bi `Reserved` (chua `Borrowed`).
+  - Ban giao (`PATCH status=InProgress`) -> ghi `ConditionAtBorrow` + `HandoverNote`; thiet bi `Borrowed`.
+  - Tra (`PATCH status=Completed`) -> Good/Fair->`Available`, Damaged->`Maintenance`, Lost->`Lost`; `ReturnRecord.OverallCondition` = xau nhat.
+  - Bao tri xong: Staff `PUT` equipment `Maintenance -> Available` (condition Good/Fair).
+  - Mat: Staff `PUT` `Lost -> Compensated` (an vinh vien).
+  - Tu huy don `Approved` neu qua `BorrowDate` chua ban giao (`BorrowRequestExpirationHostedService`).
+- `Equipment.CurrentCondition` tach khoi `Equipment.Status` (Good/Fair/Damaged/Lost/Compensated).
+- KHONG co phi muon (muon mien phi). Mat/hong xu ly qua trang thai thiet bi, khong co phi den bu.
+- User management: Admin `PATCH /api/users/{id}` voi `{ isActive }`, **KHONG xoa** user.
+- API REST: thay doi trang thai qua `PATCH`/`PUT` tren resource, **KHONG** dung URL hanh dong (`/approve`, `/activate`, ...).
 
 ## 2. Kien truc & cau truc solution
 
@@ -108,31 +116,32 @@ Ket qua test (LocalDB that):
 
 Bonus da gan o Slice 4: standardized pagination (Section 15).
 
-### 3f. Slice 5 - Borrow/return workflow (DONE, da test chay that)
-Full borrow lifecycle: create, approve, reject, cancel, return + 5 business rules + in-app notifications.
+### 3f. Slice 5 - Borrow/return workflow (DONE, da mo rong Plan A + REST refactor)
+Full borrow lifecycle: create, approve, reject, cancel, handover, return + business rules + in-app notifications + auto-cancel Approved qua han.
 
-Files da tao/sua:
-- Application: DTOs `BorrowRequestDto`/`BorrowRequestItemDto`/`CreateBorrowRequestDto`/`RejectBorrowRequestDto`/`ReturnBorrowRequestDto`; `IBorrowRequestRepository`/`INotificationRepository`; `IBorrowRequestService`/`INotificationService`; `BorrowRequestService` (5 rules + return mapping), `NotificationService`; validators (create/reject/return); cap nhat `IUnitOfWork`, `MappingProfile`, `DependencyInjection`.
-- Infrastructure: `BorrowRequestRepository` (details query, tracked update, overdue check), `NotificationRepository`; cap nhat `UnitOfWork`, `DependencyInjection`.
-- Api: `BorrowRequestsController` (GET/POST, PUT approve/reject/cancel/return).
+Files chinh:
+- Application: DTOs `BorrowRequestDto`/`BorrowRequestItemDto`/`CreateBorrowRequestDto`/`UpdateBorrowRequestDto`; `BorrowRequestService.UpdateAsync` dieu phoi theo `status`; private methods Approve/Reject/Cancel/Handover/Return; `EquipmentRules`; validators `CreateBorrowRequestDtoValidator`, `UpdateBorrowRequestDtoValidator`.
+- Domain: `Equipment.CurrentCondition`; enum `EquipmentStatus` them Reserved/Lost/Compensated; `BorrowRequestItem.HandoverNote`/`ReturnNote`.
+- Infrastructure: `BorrowRequestRepository`, `BorrowRequestExpirationHostedService`; migration `20260707033214_EquipmentConditionWorkflow`.
+- Api: `BorrowRequestsController` — GET/POST/**PATCH** `{id}` (khong con PUT /approve|reject|...).
 
-Endpoints:
-- POST /api/borrow-requests (Authenticated)
-- GET /api/borrow-requests, GET /api/borrow-requests/{id} (User=own, Staff/Admin=all)
-- PUT /api/borrow-requests/{id}/approve|reject|return (Admin/Staff)
-- PUT /api/borrow-requests/{id}/cancel (owner, Pending only)
+Endpoints (hien tai):
+- POST /api/borrow-requests
+- GET /api/borrow-requests, GET /api/borrow-requests/{id}
+- PATCH /api/borrow-requests/{id} — body `{ status, rejectReason?, staffNote?, items? }`
 
-Business rules trong BorrowRequestService:
-1. Equipment phai Available khi tao/duyet.
-2. User co yeu cau Overdue -> khong tao moi.
-3. Approve/reject chi Staff/Admin, chi Pending.
-4. ExpectedReturnDate >= BorrowDate.
-5. Return: ghi ConditionAtReturn tung item; Good/Fair->Available, Damaged->Maintenance, Lost->Retired; ReturnRecord.OverallCondition=xau nhat; status->Completed.
+Transitions PATCH:
+| status | Tu trang thai | Quyen |
+|---|---|---|
+| Approved | Pending | Staff/Admin |
+| Rejected | Pending | Staff/Admin (+ rejectReason) |
+| Cancelled | Pending, Approved | Owner |
+| InProgress | Approved | Staff/Admin (+ items handover) |
+| Completed | InProgress, Overdue | Staff/Admin (+ items return) |
 
-Ket qua test: overdue block 400; create/approve/return (Damaged->Maintenance); cancel; reject; non-available 400; user approve 403.
-- `dotnet build`: 0 error.
+Business rules (tom tat): Available+Good/Fair moi muon; duyet -> Reserved; ban giao -> Borrowed; tra -> map condition; Lost -> Lost (khong Retired); job tu huy Approved qua BorrowDate.
 
-Bonus da gan o Slice 5: simulated in-app notifications (Section 15).
+Bonus: in-app notifications; hosted service auto-cancel.
 
 ### 3g. Slice 6 - Reports + dashboard (DONE, da test chay that)
 Bao cao va dashboard cho Staff/Admin: borrow-summary, overdue-requests, dashboard stats.
@@ -225,50 +234,60 @@ Ket qua test (LocalDB :5171):
 - JSON list 200 `application/json`; XML list 200 `application/xml`; XML by-id 200 `application/xml`.
 - OData + Accept XML -> 200 `application/json` (dung nhu thiet ke).
 
-### 3k. Slice 10 (phan Users REST) - Admin user management UC-AD1 (DONE, da test chay that)
-Admin quan ly user: tao Staff; activate/deactivate — **KHONG DELETE**, **KHONG UPDATE**.
+### 3k. Slice 10 (phan Users REST) - Admin user management UC-AD1 (DONE)
+Admin quan ly user: tao Staff; bat/tat `IsActive` qua PATCH — **KHONG DELETE**.
 
-Files da tao/sua:
-- Application: `DTOs/Users/UserDto`, `CreateUserDto`; `Interfaces/Services/IUserService.cs`; `Services/UserService.cs`; `Validators/CreateUserDtoValidator`; `Mappings/MappingProfile` (User -> UserDto); `DependencyInjection.cs`.
-- Api: `Controllers/UsersController.cs` (Admin only).
+Files:
+- Application: `UserDto`, `CreateUserDto`, `UpdateUserDto`; `UserService.UpdateAsync`; `UpdateUserDtoValidator`.
+- Api: `UsersController` — GET/POST/**PATCH** `{id}` (Admin only).
 
 Endpoints:
 | Method | Route | Mo ta |
 |---|---|---|
-| GET | /api/users | Danh sach user (khong lo PasswordHash) |
+| GET | /api/users | Danh sach user |
 | GET | /api/users/{id} | Chi tiet user |
-| POST | /api/users | Tao tai khoan Staff (role co dinh, email unique) |
-| PUT | /api/users/{id}/deactivate | IsActive = false |
-| PUT | /api/users/{id}/activate | IsActive = true |
+| POST | /api/users | Tao Staff |
+| PATCH | /api/users/{id} | `{ "isActive": true/false }` |
 
-Rules: chi Admin; email unique; Admin khong tu deactivate chinh minh; user IsActive=false khong login (AuthService da co).
+Rules: chi Admin; email unique; Admin khong tu deactivate chinh minh; IsActive=false khong login.
 
-Ket qua test:
-- Admin GET list, POST create, deactivate/activate -> ok.
-- User deactivated login -> 403.
-- Admin self-deactivate -> 400.
-- User role GET /api/users -> 403.
-
-Phan Slice 10 con lai: Notifications REST + cac trang feature (equipment, borrow, admin users).
-
-### 3l. Slice 10 (phan Client — auth) - Vanilla JS + jQuery (DONE, can test)
-Multi-file HTML (mo truc tiep file://), jQuery CDN + $.ajax theo mau PRN.
+### 3l. Slice 10 (phan Client) - Vanilla JS + jQuery (DONE)
+Multi-file HTML, jQuery CDN + `api.js` wrapper (`$.ajax` + refresh token).
 
 Cau truc `client/`:
-- `index.html` -> redirect `login.html`
-- `login.html`, `register.html`, `home.html` (dang nhap thanh cong + logout), `notifications.html` (placeholder)
-- `css/styles.css` (flat, nen trang, palette Deep Oceanic / Mystic Blue / Vanilla Cream)
-- `js/config.js`, `api.js`, `auth.js`
+- Auth: `login.html`, `register.html`, `index.html` -> redirect
+- Feature: `categories.html`, `equipment.html`, `equipment-detail.html`, `borrow.html`, `manage.html`, `users.html`, `user-detail.html`, `reports.html`, `audit-logs.html`
+- Placeholder: `notifications.html` (cho REST notifications)
+- Shared: `css/styles.css`, `js/config.js`, `api.js`, `auth.js`, `utils.js`, `borrow-cart.js` (+ page-specific JS)
 
-API: `Program.cs` them CORS policy `Client` (AllowAnyOrigin — ho tro file://).
+API client:
+- Borrow: `PATCH /api/borrow-requests/{id}` (`borrow.js`)
+- Users: `PATCH /api/users/{id}` voi `{ isActive }` (`users.js`, `user-detail.js`)
+- Equipment workflow: `PUT /api/equipment/{id}` cho bao tri/den bu (`manage.js`)
+- Gio muon: `sessionStorage` key `ebms_borrow_cart`
 
-Luong:
-- Login -> JWT localStorage -> `home.html`
-- Register -> auto-login (API tra token) -> `home.html`
-- Logout -> POST /api/auth/logout + xoa localStorage
+CORS: policy `Client` (AllowAnyOrigin — ho tro file://).
+Chay: mo `client/login.html`; API `http://localhost:5171` (`js/config.js`).
 
-Chay: mo `client/login.html` (file://); API `http://localhost:5171`.
-Plan FE chi tiet: `.cursor/plans/fe_client_plan.md`.
+### 3m. Workflow redesign Plan A (DONE)
+- Reserved sau duyet; ban giao rieng; `CurrentCondition` tren Equipment.
+- Enum: EquipmentStatus (+Reserved, Lost, Compensated); EquipmentCondition (+Compensated).
+- Migration: `20260707033214_EquipmentConditionWorkflow`.
+- Seed cap nhat trong `DbInitializer`.
+
+### 3n. REST API refactor (DONE)
+Gop endpoint RPC thanh resource update:
+- Borrow: 1 endpoint `PATCH /api/borrow-requests/{id}` thay 5 PUT action URLs.
+- Users: `PATCH /api/users/{id}` thay activate/deactivate.
+- Equipment: `PUT /api/equipment/{id}` thay complete-maintenance / confirm-compensation.
+- Xoa DTO cu: `RejectBorrowRequestDto`, `ReturnBorrowRequestDto`, validators tuong ung.
+- Them: `UpdateBorrowRequestDto`, `UpdateUserDto`, `UpdateEquipmentDto.CurrentCondition`.
+
+### 3o. Equipment PUT transitions (DONE)
+`EquipmentService.ValidateEquipmentTransition`:
+- Maintenance -> Available (condition Good/Fair): hoan tat bao tri.
+- Lost -> Compensated: xac nhan den bu.
+- Khong doi status khi Reserved/Borrowed; Lost/Borrowed chi qua borrow workflow.
 
 ## 4. Cac luu y ky thuat QUAN TRONG (de khong vap lai)
 
@@ -298,37 +317,31 @@ Plan FE chi tiet: `.cursor/plans/fe_client_plan.md`.
 
 ## 7. Entity & nghiep vu (tom tat - chi tiet o PROJECT_DOCUMENTATION.md)
 
-Entity hien co (Domain): User, EquipmentCategory, Equipment, BorrowRequest, BorrowRequestItem (bang trung gian n-n co thuoc tinh), ReturnRecord (1-1 voi BorrowRequest), Notification. + BaseEntity (Id, CreatedAt).
-Enum: BorrowRequestStatus (Pending/Approved/Rejected/Cancelled/InProgress/Returned/Completed/Overdue), EquipmentCondition (Good/Fair/Damaged/Lost), EquipmentStatus (Available/Borrowed/Maintenance/Retired), NotificationType, UserRole (Admin/Staff/User).
+Entity hien co (Domain): User, EquipmentCategory, Equipment (+ CurrentCondition), BorrowRequest, BorrowRequestItem (+ HandoverNote, ReturnNote), ReturnRecord, Notification, RefreshToken, AuditLog. + BaseEntity (Id, CreatedAt, IsDeleted, DeletedAt).
 
-Entity da them: RefreshToken (Slice 2), AuditLog (Slice 7).
-BaseEntity da them: IsDeleted + DeletedAt (Slice 7 - soft delete + global query filter).
+Enum:
+- BorrowRequestStatus: Pending, Approved, Rejected, Cancelled, InProgress, Returned (legacy trong repo queries), Completed, Overdue
+- EquipmentStatus: Available, Borrowed, Maintenance, Retired, Reserved, Lost, Compensated
+- EquipmentCondition: Good, Fair, Damaged, Lost, Compensated
+- NotificationType, UserRole, AuditAction
 
-5 business rules (dat o service layer):
-1. Thiet bi khong Available -> khong them vao yeu cau moi.
-2. User dang co yeu cau Overdue -> khong tao yeu cau moi.
-3. Duyet/tu choi chi Staff/Admin, chi voi yeu cau Pending.
-4. ExpectedReturnDate >= BorrowDate.
-5. Khi tra: map tinh trang -> trang thai thiet bi (xem muc 1).
+Business rules (service layer) — xem chi tiet PROJECT_DOCUMENTATION muc 5.
 
-Workflow: Pending -> Approved -> Returned -> Completed ; + Rejected, Cancelled, Overdue.
+Workflow BorrowRequest: Pending -> Approved -> InProgress -> Completed (+ Rejected, Cancelled, Overdue). Khong con buoc Returned trung gian trong API hien tai.
+
+Workflow Equipment (trong muon): Available -> Reserved -> Borrowed -> (tra) Available/Maintenance/Lost -> (bao tri) Available; Lost -> Compensated.
 
 ## 8. CONG VIEC TIEP THEO (cac slice con lai)
 
 Lam tuan tu theo vertical slice, moi slice build xanh + test Swagger truoc khi sang slice sau. Chi tiet day du o file plan: `.cursor/plans/complete_equipment_borrowing_system_c0493f75.plan.md`.
 
-- Slice 1 - Walking skeleton: DONE.
-- Slice 2 - Auth: register/login + JWT + 3 role + refresh token + `[Authorize]`: DONE (chi tiet o muc 3c).
-- Slice 3 - CRUD: Equipment + EquipmentCategory full CRUD + role authz + FluentValidation: DONE (chi tiet o muc 3d).
-- Slice 4 - Search/paging: Equipment search/filter/sort + `PagedResult`/`PaginationParams`: DONE (chi tiet o muc 3e).
-- Slice 5 - Borrow workflow: DONE (chi tiet o muc 3f).
-- Slice 6 - Reports: borrow-summary, overdue-requests, dashboard (Staff/Admin): DONE (chi tiet o muc 3g).
-- Slice 7 - Cross-cutting bonus: audit log + soft delete: DONE (chi tiet o muc 3h).
-- Slice 8 - OData + XML content negotiation: DONE (muc 3i + 3j).
-- Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` (notification.proto + NotificationGrpcService) + `Infrastructure/Grpc/NotificationClient` ; API goi khi approve/reject/return.
-- Slice 10 - Users REST: DONE (muc 3k). Con lai: Notifications REST + vanilla JS client + CORS.
+- Slice 1-8: DONE.
+- Slice 5 mo rong (Plan A workflow) + REST refactor: DONE (muc 3f, 3m, 3n, 3o).
+- Slice 10 Users REST + Client feature pages: DONE (muc 3k, 3l).
+- Slice 9 - gRPC: project moi `EquipmentBorrowingManagementSystem.Grpc` + `Infrastructure/Grpc/NotificationClient`.
+- Slice 10 (con lai) - Notifications REST: `GET/PATCH /api/notifications` + hoan thien `notifications.html`.
 - Slice 11 - Docker Compose (SQL Server + Api + Grpc) + Dockerfile.
-- Slice 12 - Docs: hoan thien PROJECT_DOCUMENTATION (da co ban nhap), cap nhat ERD.dbml (them RefreshToken/AuditLog/soft delete), Postman collection.
+- Slice 12 - Docs: cap nhat Postman collection (ERD.dbml da cap nhat).
 
 ## 9. PROMPT KHOI DONG CHO SESSION MOI
 
@@ -346,7 +359,13 @@ Tham khao style code tu 2 du an: "D:\Documents\ASP.NET MVC\source\repos\BookMana
 
 Nguyen tac: lam dung va du theo de bai + Section 15 bonus, KHONG lam thua, KHONG phuc tap hoa; lam theo tung vertical slice, moi slice phai build xanh (dotnet build) + test endpoint truoc khi sang slice tiep; dieu gi mo ho thi hoi lai toi truoc.
 
-Trang thai: Slice 1-8 DA XONG; Slice 10 Users REST DA XONG (notifications + client chua lam). Tiep theo: Slice 9 gRPC hoac hoan thien Slice 10 (notifications + client).
+Trang thai: Slice 1-8 DA XONG; Plan A workflow + REST refactor DA XONG; Users REST + Client feature pages DA XONG. Tiep theo: Slice 9 gRPC, Notifications REST, Docker Compose, cap nhat ERD.dbml/Postman.
+
+API REST hien tai (tom tat):
+- Borrow: PATCH /api/borrow-requests/{id} (status transitions)
+- Users: PATCH /api/users/{id} ({ isActive })
+- Equipment: PUT /api/equipment/{id} (status + currentCondition)
+- Khong con: /approve, /reject, /cancel, /handover, /return, /activate, /deactivate, /complete-maintenance, /confirm-compensation
 
 Luu y moi truong: Windows PowerShell (khong dung &&, dung working_directory), LocalDB instance MSSQLLocalDB co san, API chay o http://localhost:5171 (Swagger /swagger), tu dong migrate + seed luc khoi dong. Tai khoan mau: admin@ebms.local/Admin@123, staff@ebms.local/Staff@123, user@ebms.local/User@123.
 ---

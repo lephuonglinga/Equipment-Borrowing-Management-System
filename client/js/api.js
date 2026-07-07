@@ -136,8 +136,20 @@ function apiRequest(options) {
 }
 
 function getErrorMessage(xhr, context) {
-  if (xhr.responseJSON && xhr.responseJSON.message) {
-    return xhr.responseJSON.message;
+  if (xhr.responseJSON) {
+    if (xhr.responseJSON.message) {
+      return xhr.responseJSON.message;
+    }
+    if (xhr.responseJSON.errors) {
+      const errors = xhr.responseJSON.errors;
+      const firstKey = Object.keys(errors)[0];
+      if (firstKey && errors[firstKey] && errors[firstKey].length) {
+        return errors[firstKey][0];
+      }
+    }
+    if (xhr.responseJSON.title && xhr.status === 400) {
+      return xhr.responseJSON.title;
+    }
   }
   if (xhr.status === 0) {
     return "Không kết nối được API. Hãy chạy API tại " + EBMS_CONFIG.API_BASE_URL;

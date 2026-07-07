@@ -20,7 +20,7 @@ public class ReportService : IReportService
         if (query.FromDate.HasValue && query.ToDate.HasValue && query.FromDate > query.ToDate)
         {
             return Result<BorrowSummaryDto>.Fail(
-                "From date must be on or before to date.",
+                "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.",
                 StatusCodes.Status400BadRequest);
         }
 

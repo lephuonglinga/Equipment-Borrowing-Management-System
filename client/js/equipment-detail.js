@@ -27,13 +27,19 @@ function updateCartBar() {
 }
 
 function renderBorrowButton(item) {
-  if (item.status !== "Available") {
-    return '<p class="detail-note">Thiết bị không ở trạng thái Available — không thể mượn.</p>';
+  if (!isBorrowableEquipment(item)) {
+    return '<p class="detail-note">Thiết bị không khả dụng để mượn (kiểm tra trạng thái và tình trạng).</p>';
+  }
+  let html = "";
+  if (item.currentCondition === "Fair") {
+    html += '<p class="detail-note">Tình trạng Fair — thiết bị đã qua sử dụng.</p>';
   }
   if (isInBorrowCart(item.id)) {
-    return '<button type="button" class="btn btn-card-cancel" id="btnCartToggle">Hủy chọn mượn</button>';
+    html += '<button type="button" class="btn btn-card-cancel" id="btnCartToggle">Hủy chọn mượn</button>';
+  } else {
+    html += '<button type="button" class="btn btn-card-borrow" id="btnCartToggle">Mượn</button>';
   }
-  return '<button type="button" class="btn btn-card-borrow" id="btnCartToggle">Mượn</button>';
+  return html;
 }
 
 function renderDetail(item) {
@@ -50,6 +56,7 @@ function renderDetail(item) {
   html += "</div>";
   html += '<div class="equipment-detail-body">';
   html += renderStatusBadge(item.status, "equipment");
+  html += " " + renderConditionBadge(item.currentCondition);
   html += "<h1>" + escapeHtml(item.name) + "</h1>";
   html += '<div class="detail-grid">';
   html += '<div><div class="label">Serial</div>' + escapeHtml(item.serialNumber) + "</div>";

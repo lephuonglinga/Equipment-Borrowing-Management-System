@@ -27,7 +27,7 @@ public class AuthService : IAuthService
         var existing = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (existing != null)
         {
-            return Result<AuthResponseDto>.Fail("Email is already registered.", StatusCodes.Status409Conflict);
+            return Result<AuthResponseDto>.Fail("Email đã được đăng ký.", StatusCodes.Status409Conflict);
         }
 
         var user = new User
@@ -51,12 +51,12 @@ public class AuthService : IAuthService
         var user = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (user == null || !_passwordHasher.Verify(dto.Password, user.PasswordHash))
         {
-            return Result<AuthResponseDto>.Fail("Invalid email or password.", StatusCodes.Status401Unauthorized);
+            return Result<AuthResponseDto>.Fail("Email hoặc mật khẩu không đúng.", StatusCodes.Status401Unauthorized);
         }
 
         if (!user.IsActive)
         {
-            return Result<AuthResponseDto>.Fail("Account is disabled.", StatusCodes.Status403Forbidden);
+            return Result<AuthResponseDto>.Fail("Tài khoản đã bị vô hiệu hóa.", StatusCodes.Status403Forbidden);
         }
 
         var response = await IssueTokensAsync(user);
@@ -68,13 +68,13 @@ public class AuthService : IAuthService
         var stored = await _unitOfWork.RefreshTokens.GetByTokenAsync(dto.RefreshToken);
         if (stored == null || stored.RevokedAt != null || stored.ExpiresAt <= DateTime.UtcNow)
         {
-            return Result<AuthResponseDto>.Fail("Invalid or expired refresh token.", StatusCodes.Status401Unauthorized);
+            return Result<AuthResponseDto>.Fail("Refresh token không hợp lệ hoặc đã hết hạn.", StatusCodes.Status401Unauthorized);
         }
 
         var user = stored.User;
         if (user == null || !user.IsActive)
         {
-            return Result<AuthResponseDto>.Fail("Account is not available.", StatusCodes.Status401Unauthorized);
+            return Result<AuthResponseDto>.Fail("Tài khoản không khả dụng.", StatusCodes.Status401Unauthorized);
         }
 
         stored.RevokedAt = DateTime.UtcNow;

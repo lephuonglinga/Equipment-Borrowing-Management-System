@@ -51,11 +51,14 @@ function renderDetail(user) {
 
 function toggleUser(activate) {
   if (!currentUser) return;
-  const action = activate ? "activate" : "deactivate";
   const msg = activate ? "Kích hoạt user này?" : "Vô hiệu hóa user này?";
   if (!confirm(msg)) return;
 
-  apiRequest({ url: "/api/users/" + currentUser.id + "/" + action, method: "PUT" })
+  apiRequest({
+    url: "/api/users/" + currentUser.id,
+    method: "PATCH",
+    body: { isActive: activate }
+  })
     .done(function (data) {
       showAlert($("#detailAlert"), activate ? "Đã kích hoạt user." : "Đã vô hiệu hóa user.", "success");
       renderDetail(data);

@@ -38,17 +38,10 @@ public class UsersController : ApiControllerBase
         return ToActionResult(result);
     }
 
-    [HttpPut("{id:int}/deactivate")]
-    public async Task<IActionResult> Deactivate(int id)
+    [HttpPatch("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
     {
-        var result = await _userService.DeactivateAsync(id);
-        return ToActionResult(result);
-    }
-
-    [HttpPut("{id:int}/activate")]
-    public async Task<IActionResult> Activate(int id)
-    {
-        var result = await _userService.ActivateAsync(id);
+        var result = await _userService.UpdateAsync(id, dto);
         return ToActionResult(result);
     }
 }

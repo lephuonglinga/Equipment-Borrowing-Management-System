@@ -22,7 +22,7 @@ public class AuditLogService : IAuditLogService
             !Enum.TryParse<AuditAction>(query.Action, ignoreCase: true, out _))
         {
             return Result<PagedResult<AuditLogDto>>.Fail(
-                "Invalid action filter. Use Created, Updated, or Deleted.",
+                "Bộ lọc action không hợp lệ. Dùng Created, Updated hoặc Deleted.",
                 StatusCodes.Status400BadRequest);
         }
 

@@ -12,6 +12,8 @@ public class BorrowRequestItemConfiguration : IEntityTypeConfiguration<BorrowReq
 
         builder.Property(i => i.ConditionAtBorrow).HasConversion<int?>();
         builder.Property(i => i.ConditionAtReturn).HasConversion<int?>();
+        builder.Property(i => i.HandoverNote).HasMaxLength(500);
+        builder.Property(i => i.ReturnNote).HasMaxLength(500);
 
         builder.HasIndex(i => new { i.BorrowRequestId, i.EquipmentId }).IsUnique();
 

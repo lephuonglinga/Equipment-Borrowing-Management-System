@@ -6,7 +6,14 @@ function renderDashboard(data) {
   html += statCard("Borrowed", eq.borrowed);
   html += statCard("Maintenance", eq.maintenance);
   html += statCard("Quá hạn", data.overdueRequestCount, true);
-  html += statCard("Trả hư hỏng", data.damagedReturnItemCount, true);
+  html +=
+    '<a href="manage.html?currentCondition=Damaged" class="stat-card-link">' +
+    statCard("Đang hư hỏng", data.damagedEquipmentCount, true) +
+    "</a>";
+  html +=
+    '<a href="manage.html?status=Lost" class="stat-card-link">' +
+    statCard("Đang mất", data.lostEquipmentCount, true) +
+    "</a>";
   html += "</div>";
 
   if (data.borrowRequestsByStatus && data.borrowRequestsByStatus.length) {

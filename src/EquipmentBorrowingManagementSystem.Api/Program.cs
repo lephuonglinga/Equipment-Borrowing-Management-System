@@ -7,6 +7,7 @@ using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using EquipmentBorrowingManagementSystem.Infrastructure.Seeders;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -18,7 +19,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) =>
     configuration.MinimumLevel.Information().WriteTo.Console());
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+{
+    // Controller-level options if needed
+})
+    .ConfigureApiBehaviorOptions(api =>
+    {
+        api.InvalidModelStateResponseFactory = context =>
+        {
+            var message = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? e.Exception?.Message : e.ErrorMessage)
+                .FirstOrDefault(m => !string.IsNullOrWhiteSpace(m))
+                ?? "Dữ liệu không hợp lệ.";
+
+            return new BadRequestObjectResult(new { message });
+        };
+    })
     .AddXmlSerializerFormatters()
     .AddOData(options => options
         .Select()

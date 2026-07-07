@@ -9,4 +9,6 @@ public class BorrowRequestItemDto
     public int Quantity { get; set; }
     public string? ConditionAtBorrow { get; set; }
     public string? ConditionAtReturn { get; set; }
+    public string? HandoverNote { get; set; }
+    public string? ReturnNote { get; set; }
 }

@@ -41,7 +41,7 @@ public class UserService : IUserService
         var user = await _unitOfWork.Users.GetByIdAsync(id);
         if (user == null)
         {
-            return Result<UserDto>.Fail("User not found.", StatusCodes.Status404NotFound);
+            return Result<UserDto>.Fail("Không tìm thấy người dùng.", StatusCodes.Status404NotFound);
         }
 
         return Result<UserDto>.Ok(_mapper.Map<UserDto>(user));
@@ -52,7 +52,7 @@ public class UserService : IUserService
         var existing = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (existing != null)
         {
-            return Result<UserDto>.Fail("Email is already registered.", StatusCodes.Status409Conflict);
+            return Result<UserDto>.Fail("Email đã được đăng ký.", StatusCodes.Status409Conflict);
         }
 
         var user = new User
@@ -70,48 +70,32 @@ public class UserService : IUserService
         return Result<UserDto>.Created(_mapper.Map<UserDto>(user));
     }
 
-    public async Task<Result<UserDto>> DeactivateAsync(int id)
+    public async Task<Result<UserDto>> UpdateAsync(int id, UpdateUserDto dto)
     {
-        if (_currentUser.UserId == id)
+        if (!dto.IsActive && _currentUser.UserId == id)
         {
-            return Result<UserDto>.Fail("You cannot deactivate your own account.", StatusCodes.Status400BadRequest);
+            return Result<UserDto>.Fail("Bạn không thể vô hiệu hóa tài khoản của chính mình.", StatusCodes.Status400BadRequest);
         }
 
         var user = await _unitOfWork.Users.GetByIdAsync(id);
         if (user == null)
         {
-            return Result<UserDto>.Fail("User not found.", StatusCodes.Status404NotFound);
+            return Result<UserDto>.Fail("Không tìm thấy người dùng.", StatusCodes.Status404NotFound);
         }
 
-        if (!user.IsActive)
+        if (user.IsActive == dto.IsActive)
         {
-            return Result<UserDto>.Ok(_mapper.Map<UserDto>(user), "User is already inactive.");
+            return Result<UserDto>.Ok(
+                _mapper.Map<UserDto>(user),
+                dto.IsActive ? "User is already active." : "User is already inactive.");
         }
 
-        user.IsActive = false;
+        user.IsActive = dto.IsActive;
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<UserDto>.Ok(_mapper.Map<UserDto>(user), "User deactivated.");
-    }
-
-    public async Task<Result<UserDto>> ActivateAsync(int id)
-    {
-        var user = await _unitOfWork.Users.GetByIdAsync(id);
-        if (user == null)
-        {
-            return Result<UserDto>.Fail("User not found.", StatusCodes.Status404NotFound);
-        }
-
-        if (user.IsActive)
-        {
-            return Result<UserDto>.Ok(_mapper.Map<UserDto>(user), "User is already active.");
-        }
-
-        user.IsActive = true;
-        _unitOfWork.Users.Update(user);
-        await _unitOfWork.SaveChangesAsync();
-
-        return Result<UserDto>.Ok(_mapper.Map<UserDto>(user), "User activated.");
+        return Result<UserDto>.Ok(
+            _mapper.Map<UserDto>(user),
+            dto.IsActive ? "User activated." : "User deactivated.");
     }
 }

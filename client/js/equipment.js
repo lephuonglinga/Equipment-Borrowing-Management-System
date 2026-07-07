@@ -36,7 +36,7 @@ function updateCartBar() {
 }
 
 function renderBorrowAction(item) {
-  if (item.status !== "Available") {
+  if (!isBorrowableEquipment(item)) {
     return "";
   }
 
@@ -86,6 +86,11 @@ function renderEquipmentCard(item) {
     "></div></a>" +
     '<div class="body">' +
     renderStatusBadge(item.status, "equipment") +
+    " " +
+    renderConditionBadge(item.currentCondition) +
+    (item.currentCondition === "Fair"
+      ? ' <span class="fair-warning" title="Thiết bị đã qua sử dụng">⚠</span>'
+      : "") +
     '<a class="card-link" href="' +
     detailHref +
     '"><h3>' +

@@ -3,6 +3,7 @@ using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
 using EquipmentBorrowingManagementSystem.Infrastructure.Audit;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
+using EquipmentBorrowingManagementSystem.Infrastructure.HostedServices;
 using EquipmentBorrowingManagementSystem.Infrastructure.Repositories;
 using EquipmentBorrowingManagementSystem.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ICurrentUser, CurrentUser>();
+
+        services.AddHostedService<BorrowRequestExpirationHostedService>();
 
         return services;
     }

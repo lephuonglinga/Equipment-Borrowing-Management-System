@@ -1,3 +1,4 @@
+using EquipmentBorrowingManagementSystem.Application.Common;
 using EquipmentBorrowingManagementSystem.Application.DTOs.Categories;
 using FluentValidation;
 
@@ -7,7 +8,7 @@ public class CreateEquipmentCategoryDtoValidator : AbstractValidator<CreateEquip
 {
     public CreateEquipmentCategoryDtoValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Name).NotEmpty().WithMessage(ValidationMessages.Required).MaximumLength(100);
         RuleFor(x => x.Description).MaximumLength(500);
     }
 }

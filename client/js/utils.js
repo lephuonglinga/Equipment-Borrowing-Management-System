@@ -38,7 +38,16 @@ function hideAlert($el) {
 }
 
 function equipmentStatusClass(status) {
-  return "status-" + (status || "available").toLowerCase();
+  const map = {
+    Available: "status-available",
+    Borrowed: "status-borrowed",
+    Maintenance: "status-maintenance",
+    Retired: "status-retired",
+    Reserved: "status-reserved",
+    Lost: "status-lost",
+    Compensated: "status-compensated"
+  };
+  return map[status] || "status-" + (status || "available").toLowerCase();
 }
 
 function borrowStatusClass(status) {
@@ -58,6 +67,27 @@ function borrowStatusClass(status) {
 function renderStatusBadge(status, type) {
   const cls = type === "borrow" ? borrowStatusClass(status) : equipmentStatusClass(status);
   return '<span class="status-badge ' + cls + '">' + escapeHtml(status) + "</span>";
+}
+
+function equipmentConditionClass(condition) {
+  return "condition-" + (condition || "good").toLowerCase();
+}
+
+function renderConditionBadge(condition) {
+  if (!condition) return "—";
+  return (
+    '<span class="condition-badge ' +
+    equipmentConditionClass(condition) +
+    '">' +
+    escapeHtml(condition) +
+    "</span>"
+  );
+}
+
+function isBorrowableEquipment(item) {
+  if (!item || item.status !== "Available") return false;
+  const c = (item.currentCondition || "").toLowerCase();
+  return c === "good" || c === "fair";
 }
 
 function requireStaffOrAdmin() {

@@ -30,7 +30,7 @@ public class EquipmentCategoryService : IEquipmentCategoryService
         var category = await _unitOfWork.EquipmentCategories.GetByIdAsync(id);
         if (category == null)
         {
-            return Result<EquipmentCategoryDto>.Fail("Category not found.", StatusCodes.Status404NotFound);
+            return Result<EquipmentCategoryDto>.Fail("Không tìm thấy danh mục.", StatusCodes.Status404NotFound);
         }
 
         return Result<EquipmentCategoryDto>.Ok(_mapper.Map<EquipmentCategoryDto>(category));
@@ -41,7 +41,7 @@ public class EquipmentCategoryService : IEquipmentCategoryService
         var existing = await _unitOfWork.EquipmentCategories.GetByNameAsync(dto.Name);
         if (existing != null)
         {
-            return Result<EquipmentCategoryDto>.Fail("Category name already exists.", StatusCodes.Status409Conflict);
+            return Result<EquipmentCategoryDto>.Fail("Tên danh mục đã tồn tại.", StatusCodes.Status409Conflict);
         }
 
         var category = new EquipmentCategory
@@ -61,13 +61,13 @@ public class EquipmentCategoryService : IEquipmentCategoryService
         var category = await _unitOfWork.EquipmentCategories.GetByIdAsync(id);
         if (category == null)
         {
-            return Result<EquipmentCategoryDto>.Fail("Category not found.", StatusCodes.Status404NotFound);
+            return Result<EquipmentCategoryDto>.Fail("Không tìm thấy danh mục.", StatusCodes.Status404NotFound);
         }
 
         var existing = await _unitOfWork.EquipmentCategories.GetByNameAsync(dto.Name);
         if (existing != null && existing.Id != id)
         {
-            return Result<EquipmentCategoryDto>.Fail("Category name already exists.", StatusCodes.Status409Conflict);
+            return Result<EquipmentCategoryDto>.Fail("Tên danh mục đã tồn tại.", StatusCodes.Status409Conflict);
         }
 
         category.Name = dto.Name;
@@ -84,12 +84,12 @@ public class EquipmentCategoryService : IEquipmentCategoryService
         var category = await _unitOfWork.EquipmentCategories.GetByIdAsync(id);
         if (category == null)
         {
-            return Result.Fail("Category not found.", StatusCodes.Status404NotFound);
+            return Result.Fail("Không tìm thấy danh mục.", StatusCodes.Status404NotFound);
         }
 
         if (await _unitOfWork.EquipmentCategories.HasEquipmentsAsync(id))
         {
-            return Result.Fail("Cannot delete category that still has equipment.", StatusCodes.Status400BadRequest);
+            return Result.Fail("Không thể xóa danh mục còn thiết bị.", StatusCodes.Status400BadRequest);
         }
 
         _unitOfWork.EquipmentCategories.Delete(category);

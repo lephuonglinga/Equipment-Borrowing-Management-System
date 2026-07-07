@@ -17,7 +17,7 @@
 
     <div id="siteHeader"></div>
 
-    <div class="page-wrap wide">
+    <div class="page-wrap wide manage-page">
         <div class="card card-accent">
             <div class="page-header">
                 <div>
@@ -39,6 +39,22 @@
                     <button type="button" class="btn btn-primary btn-sm" id="btnAddEquipment">
                         <i class="fa-solid fa-plus"></i> Thêm thiết bị
                     </button>
+                    <select id="eqFilterStatus" class="filter-select" title="Lọc trạng thái">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Available">Available</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Lost">Lost</option>
+                        <option value="Borrowed">Borrowed</option>
+                        <option value="Reserved">Reserved</option>
+                        <option value="Retired">Retired</option>
+                    </select>
+                    <select id="eqFilterCondition" class="filter-select" title="Lọc tình trạng">
+                        <option value="">Tất cả tình trạng</option>
+                        <option value="Good">Good</option>
+                        <option value="Fair">Fair</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Lost">Lost</option>
+                    </select>
                 </div>
                 <div id="equipmentTableWrap" class="data-table-wrap"></div>
                 <div id="equipmentPager"></div>
@@ -80,12 +96,20 @@
                         <select id="eqCategory" required></select>
                     </div>
                     <div class="form-group" id="eqStatusGroup" style="display:none;">
-                        <label for="eqStatus">Status</label>
+                        <label for="eqStatus">Trạng thái</label>
                         <select id="eqStatus">
                             <option value="Available">Available</option>
-                            <option value="Borrowed">Borrowed</option>
                             <option value="Maintenance">Maintenance</option>
                             <option value="Retired">Retired</option>
+                        </select>
+                        <p class="form-hint">Borrowed / Reserved / Lost do luồng mượn quản lý.</p>
+                    </div>
+                    <div class="form-group" id="eqConditionGroup" style="display:none;">
+                        <label for="eqCurrentCondition">Tình trạng</label>
+                        <select id="eqCurrentCondition">
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Damaged">Damaged</option>
                         </select>
                     </div>
                     <div class="form-group">

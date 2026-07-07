@@ -1,12 +1,12 @@
 using EquipmentBorrowingManagementSystem.Application.Common;
-using EquipmentBorrowingManagementSystem.Application.DTOs.Users;
+using EquipmentBorrowingManagementSystem.Application.DTOs.Auth;
 using FluentValidation;
 
 namespace EquipmentBorrowingManagementSystem.Application.Validators;
 
-public class CreateUserDtoValidator : AbstractValidator<CreateUserDto>
+public class RegisterDtoValidator : AbstractValidator<RegisterDto>
 {
-    public CreateUserDtoValidator()
+    public RegisterDtoValidator()
     {
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage(ValidationMessages.Required)

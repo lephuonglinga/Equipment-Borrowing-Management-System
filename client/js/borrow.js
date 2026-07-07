@@ -3,8 +3,9 @@ let activeTab = "pending";
 
 const TAB_STATUS = {
   pending: ["Pending"],
-  active: ["Approved", "InProgress", "Overdue"],
-  history: ["Completed", "Rejected", "Cancelled", "Returned"]
+  pickup: ["Approved"],
+  active: ["InProgress", "Overdue"],
+  history: ["Completed", "Rejected", "Cancelled"]
 };
 
 const STATUS_BY_NUMBER = {
@@ -17,6 +18,9 @@ const STATUS_BY_NUMBER = {
   7: "Completed",
   8: "Overdue"
 };
+
+const HANDOVER_CONDITIONS = ["Good", "Fair", "Damaged"];
+const RETURN_CONDITIONS = ["Good", "Fair", "Damaged", "Lost"];
 
 function normalizeBorrowStatus(status) {
   if (status == null) return "";
@@ -42,6 +46,10 @@ function loadBorrowRequests() {
   return apiRequest({ url: "/api/borrow-requests" });
 }
 
+function patchBorrowRequest(id, body) {
+  return apiRequest({ url: "/api/borrow-requests/" + id, method: "PATCH", body: body });
+}
+
 function filterByTab(requests) {
   return requests.filter(function (r) {
     return requestMatchesTab(r, activeTab);
@@ -50,6 +58,7 @@ function filterByTab(requests) {
 
 function updateTabLabels() {
   $("#tabPending").text("Chờ duyệt (" + countByTab("pending") + ")");
+  $("#tabPickup").text("Chờ bàn giao (" + countByTab("pickup") + ")");
   $("#tabActive").text("Đang mượn (" + countByTab("active") + ")");
   $("#tabHistory").text("Lịch sử (" + countByTab("history") + ")");
 }
@@ -59,7 +68,7 @@ function updatePageHeader() {
   if (staff) {
     $("#pageTitle").text("Duyệt mượn");
     $("#pageSubtitle").text(
-      "Yêu cầu chờ duyệt (tab Chờ duyệt) — khác với trạng thái thiết bị trên Equipments."
+      "Duyệt đơn → Bàn giao (ghi tình trạng) → Nhận trả. Thiết bị Reserved ngay khi gửi yêu cầu, Borrowed sau bàn giao."
     );
     $("#btnBorrowMore").hide();
   } else {
@@ -71,17 +80,36 @@ function updatePageHeader() {
 
 function renderItemsList(items) {
   if (!items || items.length === 0) return "<p>Không có thiết bị trong yêu cầu.</p>";
-  let html = '<ul class="item-list">';
+  let html = '<ul class="item-list item-list-detailed">';
   items.forEach(function (item) {
-    html +=
-      "<li><strong>" +
-      escapeHtml(item.equipmentName) +
-      "</strong> · " +
-      escapeHtml(item.serialNumber) +
-      "</li>";
+    html += "<li>";
+    html += "<strong>" + escapeHtml(item.equipmentName) + "</strong> · " + escapeHtml(item.serialNumber);
+    if (item.conditionAtBorrow) {
+      html += '<div class="item-condition">Giao: ' + renderConditionBadge(item.conditionAtBorrow);
+      if (item.handoverNote) {
+        html += " — " + escapeHtml(item.handoverNote);
+      }
+      html += "</div>";
+    }
+    if (item.conditionAtReturn) {
+      html += '<div class="item-condition">Trả: ' + renderConditionBadge(item.conditionAtReturn);
+      if (item.conditionAtBorrow && conditionWorsened(item.conditionAtBorrow, item.conditionAtReturn)) {
+        html += ' <span class="condition-worse">(xấu hơn lúc giao)</span>';
+      }
+      if (item.returnNote) {
+        html += " — " + escapeHtml(item.returnNote);
+      }
+      html += "</div>";
+    }
+    html += "</li>";
   });
   html += "</ul>";
   return html;
+}
+
+function conditionWorsened(atBorrow, atReturn) {
+  const order = { Good: 1, Fair: 2, Damaged: 3, Lost: 4, Compensated: 5 };
+  return (order[atReturn] || 0) > (order[atBorrow] || 0);
 }
 
 function renderRequestCard(r) {
@@ -106,7 +134,7 @@ function renderRequestCard(r) {
   html += '<div class="request-meta">' + escapeHtml(r.purpose) + "</div>";
   html += renderItemsList(r.items);
 
-  if (!staff && status === "Pending") {
+  if (!staff && (status === "Pending" || status === "Approved")) {
     html +=
       '<div class="request-card-actions"><button type="button" class="btn btn-danger btn-sm btn-cancel" data-id="' +
       r.id +
@@ -122,7 +150,14 @@ function renderRequestCard(r) {
     html += "</div>";
   }
 
-  if (staff && (status === "Approved" || status === "InProgress" || status === "Overdue")) {
+  if (staff && status === "Approved") {
+    html +=
+      '<div class="request-card-actions"><button type="button" class="btn btn-primary btn-sm btn-handover" data-id="' +
+      r.id +
+      '">Bàn giao</button></div>';
+  }
+
+  if (staff && (status === "InProgress" || status === "Overdue")) {
     html +=
       '<div class="request-card-actions"><button type="button" class="btn btn-primary btn-sm btn-return" data-id="' +
       r.id +
@@ -138,11 +173,13 @@ function renderBorrowList() {
   const filtered = filterByTab(allRequests);
 
   if (filtered.length === 0) {
-    const labels = { pending: "chờ duyệt", active: "đang mượn", history: "lịch sử" };
+    const labels = {
+      pending: "chờ duyệt",
+      pickup: "chờ bàn giao",
+      active: "đang mượn",
+      history: "lịch sử"
+    };
     let msg = "Không có yêu cầu " + labels[activeTab] + ".";
-    if (isStaffOrAdmin() && activeTab === "pending" && allRequests.length > 0) {
-      msg += " Thử tab Đang mượn hoặc Lịch sử — thiết bị trên Equipments vẫn Available cho đến khi yêu cầu được duyệt.";
-    }
     $("#borrowList").html('<p class="empty-state">' + msg + "</p>");
     return;
   }
@@ -159,7 +196,7 @@ function bindRequestActions() {
   $(".btn-cancel").on("click", function () {
     const id = parseInt($(this).data("id"), 10);
     if (!confirm("Hủy yêu cầu #" + id + "?")) return;
-    apiRequest({ url: "/api/borrow-requests/" + id + "/cancel", method: "PUT" })
+    patchBorrowRequest(id, { status: "Cancelled" })
       .done(function () {
         showAlert($("#listAlert"), "Đã hủy yêu cầu.", "success");
         fetchBorrowList();
@@ -171,9 +208,9 @@ function bindRequestActions() {
 
   $(".btn-approve").on("click", function () {
     const id = parseInt($(this).data("id"), 10);
-    apiRequest({ url: "/api/borrow-requests/" + id + "/approve", method: "PUT" })
+    patchBorrowRequest(id, { status: "Approved" })
       .done(function () {
-        showAlert($("#listAlert"), "Đã duyệt yêu cầu.", "success");
+        showAlert($("#listAlert"), "Đã duyệt — chờ bàn giao thiết bị.", "success");
         fetchBorrowList();
       })
       .fail(function (xhr) {
@@ -185,11 +222,7 @@ function bindRequestActions() {
     const id = parseInt($(this).data("id"), 10);
     const reason = prompt("Lý do từ chối:");
     if (!reason || !reason.trim()) return;
-    apiRequest({
-      url: "/api/borrow-requests/" + id + "/reject",
-      method: "PUT",
-      body: { rejectReason: reason.trim() }
-    })
+    patchBorrowRequest(id, { status: "Rejected", rejectReason: reason.trim() })
       .done(function () {
         showAlert($("#listAlert"), "Đã từ chối yêu cầu.", "success");
         fetchBorrowList();
@@ -199,8 +232,12 @@ function bindRequestActions() {
       });
   });
 
+  $(".btn-handover").on("click", function () {
+    openDetail(parseInt($(this).data("id"), 10), "handover");
+  });
+
   $(".btn-return").on("click", function () {
-    openDetail(parseInt($(this).data("id"), 10), true);
+    openDetail(parseInt($(this).data("id"), 10), "return");
   });
 }
 
@@ -233,15 +270,72 @@ function renderDetailBody(r) {
   return html;
 }
 
+function conditionSelectOptions(conditions, selected) {
+  let html = "";
+  conditions.forEach(function (c) {
+    html += '<option value="' + c + '"' + (selected === c ? " selected" : "") + ">" + c + "</option>";
+  });
+  return html;
+}
+
+function openHandoverForm(r) {
+  let formHtml = '<div class="section-title" style="margin-top:0;">Kiểm tra tình trạng khi bàn giao</div>';
+  (r.items || []).forEach(function (item) {
+    formHtml += '<div class="form-group handover-item" data-eq="' + item.equipmentId + '">';
+    formHtml += "<label>" + escapeHtml(item.equipmentName) + " · " + escapeHtml(item.serialNumber) + "</label>";
+    formHtml +=
+      '<select class="handover-condition">' +
+      conditionSelectOptions(HANDOVER_CONDITIONS, "Good") +
+      "</select>";
+    formHtml += '<input type="text" class="handover-note" placeholder="Ghi chú (tùy chọn)">';
+    formHtml += "</div>";
+  });
+  formHtml +=
+    '<div style="margin-top:12px;text-align:right;"><button type="button" class="btn btn-primary" id="btnConfirmHandover">Xác nhận bàn giao</button></div>';
+  $("#detailBody").html(formHtml);
+  $("#detailActions").html('<button type="button" class="btn btn-ghost" data-close>Đóng</button>');
+
+  $("#btnConfirmHandover").on("click", function () {
+    const items = [];
+    $(".handover-item").each(function () {
+      items.push({
+        equipmentId: parseInt($(this).data("eq"), 10),
+        conditionAtBorrow: $(this).find(".handover-condition").val(),
+        note: $(this).find(".handover-note").val().trim() || null
+      });
+    });
+    patchBorrowRequest(r.id, {
+      status: "InProgress",
+      items: items
+    })
+      .done(function () {
+        $("#detailModal").removeClass("open");
+        showAlert($("#listAlert"), "Đã bàn giao thiết bị.", "success");
+        fetchBorrowList();
+      })
+      .fail(function (xhr) {
+        alert(getErrorMessage(xhr));
+      });
+  });
+}
+
 function openReturnForm(r) {
-  let formHtml = '<div class="section-title" style="margin-top:0;">Tình trạng khi trả</div>';
+  let formHtml = '<div class="section-title" style="margin-top:0;">Kiểm tra tình trạng khi trả</div>';
   formHtml += '<div class="form-group"><label>Ghi chú staff</label><input type="text" id="staffNote"></div>';
   (r.items || []).forEach(function (item) {
-    formHtml += '<div class="form-group"><label>' + escapeHtml(item.equipmentName) + "</label>";
+    const defaultCond = item.conditionAtBorrow || "Good";
+    formHtml += '<div class="form-group return-item" data-eq="' + item.equipmentId + '">';
+    formHtml += "<label>" + escapeHtml(item.equipmentName);
+    if (item.conditionAtBorrow) {
+      formHtml += " (giao: " + escapeHtml(item.conditionAtBorrow) + ")";
+    }
+    formHtml += "</label>";
     formHtml +=
-      '<select class="return-condition" data-eq="' +
-      item.equipmentId +
-      '"><option value="Good">Good</option><option value="Fair">Fair</option><option value="Damaged">Damaged</option><option value="Lost">Lost</option></select></div>';
+      '<select class="return-condition">' +
+      conditionSelectOptions(RETURN_CONDITIONS, defaultCond) +
+      "</select>";
+    formHtml += '<input type="text" class="return-note" placeholder="Ghi chú (tùy chọn)">';
+    formHtml += "</div>";
   });
   formHtml +=
     '<div style="margin-top:12px;text-align:right;"><button type="button" class="btn btn-primary" id="btnConfirmReturn">Xác nhận trả</button></div>';
@@ -250,16 +344,17 @@ function openReturnForm(r) {
 
   $("#btnConfirmReturn").on("click", function () {
     const items = [];
-    $(".return-condition").each(function () {
+    $(".return-item").each(function () {
       items.push({
         equipmentId: parseInt($(this).data("eq"), 10),
-        conditionAtReturn: $(this).val()
+        conditionAtReturn: $(this).find(".return-condition").val(),
+        note: $(this).find(".return-note").val().trim() || null
       });
     });
-    apiRequest({
-      url: "/api/borrow-requests/" + r.id + "/return",
-      method: "PUT",
-      body: { staffNote: $("#staffNote").val().trim() || null, items: items }
+    patchBorrowRequest(r.id, {
+      status: "Completed",
+      staffNote: $("#staffNote").val().trim() || null,
+      items: items
     })
       .done(function () {
         $("#detailModal").removeClass("open");
@@ -272,10 +367,12 @@ function openReturnForm(r) {
   });
 }
 
-function openDetail(id, forReturn) {
+function openDetail(id, mode) {
   apiRequest({ url: "/api/borrow-requests/" + id }).done(function (r) {
     $("#detailId").text(r.id);
-    if (forReturn && isStaffOrAdmin()) {
+    if (mode === "handover" && isStaffOrAdmin()) {
+      openHandoverForm(r);
+    } else if (mode === "return" && isStaffOrAdmin()) {
       openReturnForm(r);
     } else {
       $("#detailBody").html(renderDetailBody(r));

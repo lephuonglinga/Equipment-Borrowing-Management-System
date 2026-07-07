@@ -85,11 +85,10 @@ function renderUserTable(users) {
 }
 
 function toggleUser(id, activate) {
-  const action = activate ? "activate" : "deactivate";
   const msg = activate ? "Kích hoạt user này?" : "Vô hiệu hóa user này?";
   if (!confirm(msg)) return;
 
-  apiRequest({ url: "/api/users/" + id + "/" + action, method: "PUT" })
+  apiRequest({ url: "/api/users/" + id, method: "PATCH", body: { isActive: activate } })
     .done(function () {
       showAlert($("#userAlert"), activate ? "Đã kích hoạt user." : "Đã vô hiệu hóa user.", "success");
       fetchUsers();

@@ -1,15 +1,31 @@
 let categories = [];
 let eqPage = 1;
+let eqFilterStatus = "";
+let eqFilterCondition = "";
 
 function loadCategories() {
   return apiRequest({ url: "/api/equipment-categories" });
+}
+
+function buildEquipmentQuery(page) {
+  let url =
+    "/api/equipment?pageNumber=" +
+    (page || 1) +
+    "&pageSize=10&sortBy=name&sortDirection=asc";
+  if (eqFilterStatus) {
+    url += "&status=" + encodeURIComponent(eqFilterStatus);
+  }
+  if (eqFilterCondition) {
+    url += "&currentCondition=" + encodeURIComponent(eqFilterCondition);
+  }
+  return url;
 }
 
 function fetchEquipmentPage(page) {
   eqPage = page || 1;
   $("#equipmentTableWrap").html('<p class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i></p>');
   apiRequest({
-    url: "/api/equipment?pageNumber=" + eqPage + "&pageSize=10&sortBy=name&sortDirection=asc"
+    url: buildEquipmentQuery(eqPage)
   })
     .done(function (data) {
       renderEquipmentTable(data);
@@ -27,7 +43,7 @@ function renderEquipmentTable(data) {
   }
 
   let html = '<table class="data-table"><thead><tr>';
-  html += "<th>Tên</th><th>Serial</th><th>Danh mục</th><th>Status</th><th>Vị trí</th><th></th>";
+  html += "<th>Tên</th><th>Serial</th><th>Danh mục</th><th>Trạng thái</th><th>Tình trạng</th><th>Vị trí</th><th></th>";
   html += "</tr></thead><tbody>";
 
   data.items.forEach(function (eq) {
@@ -36,10 +52,25 @@ function renderEquipmentTable(data) {
     html += "<td>" + escapeHtml(eq.serialNumber) + "</td>";
     html += "<td>" + escapeHtml(eq.categoryName) + "</td>";
     html += "<td>" + renderStatusBadge(eq.status, "equipment") + "</td>";
+    html += "<td>" + renderConditionBadge(eq.currentCondition) + "</td>";
     html += "<td>" + escapeHtml(eq.location || "—") + "</td>";
     html += '<td class="table-actions">';
-    html += '<button type="button" class="btn btn-ghost btn-sm btn-edit-eq" data-id="' + eq.id + '">Sửa</button>';
-    html += '<button type="button" class="btn btn-danger btn-sm btn-del-eq" data-id="' + eq.id + '">Xóa</button>';
+    if (eq.status === "Maintenance") {
+      html +=
+        '<button type="button" class="btn btn-primary btn-sm btn-complete-maint" data-id="' +
+        eq.id +
+        '">Hoàn tất BT</button> ';
+    }
+    if (eq.status === "Lost") {
+      html +=
+        '<button type="button" class="btn btn-danger btn-sm btn-compensate" data-id="' +
+        eq.id +
+        '">Đã đền bù</button> ';
+    }
+    if (eq.status !== "Lost" && eq.status !== "Compensated" && eq.status !== "Borrowed" && eq.status !== "Reserved") {
+      html += '<button type="button" class="btn btn-ghost btn-sm btn-edit-eq" data-id="' + eq.id + '">Sửa</button>';
+      html += '<button type="button" class="btn btn-danger btn-sm btn-del-eq" data-id="' + eq.id + '">Xóa</button>';
+    }
     html += "</td></tr>";
   });
 
@@ -51,6 +82,14 @@ function renderEquipmentTable(data) {
   });
   $(".btn-del-eq").on("click", function () {
     deleteEquipment(parseInt($(this).data("id"), 10));
+  });
+
+  $(".btn-complete-maint").on("click", function () {
+    completeMaintenance(parseInt($(this).data("id"), 10));
+  });
+
+  $(".btn-compensate").on("click", function () {
+    confirmCompensation(parseInt($(this).data("id"), 10));
   });
 }
 
@@ -69,12 +108,14 @@ function openEquipmentForm(id) {
   if (id) {
     $("#equipmentModalTitle").text("Sửa thiết bị");
     $("#eqStatusGroup").show();
+    $("#eqConditionGroup").show();
     apiRequest({ url: "/api/equipment/" + id }).done(function (eq) {
       $("#eqId").val(eq.id);
       $("#eqName").val(eq.name);
       $("#eqSerial").val(eq.serialNumber);
       $("#eqCategory").val(eq.categoryId);
       $("#eqStatus").val(eq.status);
+      $("#eqCurrentCondition").val(eq.currentCondition || "Good");
       $("#eqLocation").val(eq.location || "");
       $("#eqDescription").val(eq.description || "");
       $("#eqImageUrl").val(eq.imageUrl || "");
@@ -84,6 +125,7 @@ function openEquipmentForm(id) {
     $("#equipmentModalTitle").text("Thêm thiết bị");
     $("#eqId").val("");
     $("#eqStatusGroup").hide();
+    $("#eqConditionGroup").hide();
     $("#equipmentForm")[0].reset();
     $("#equipmentModal").addClass("open");
   }
@@ -106,6 +148,7 @@ function saveEquipment(e) {
   let request;
   if (id) {
     body.status = $("#eqStatus").val();
+    body.currentCondition = $("#eqCurrentCondition").val();
     request = apiRequest({ url: "/api/equipment/" + id, method: "PUT", body: body });
   } else {
     request = apiRequest({ url: "/api/equipment", method: "POST", body: body });
@@ -132,6 +175,51 @@ function deleteEquipment(id) {
     .fail(function (xhr) {
       showAlert($("#pageAlert"), getErrorMessage(xhr), "error");
     });
+}
+
+function putEquipmentUpdate(id, changes) {
+  apiRequest({ url: "/api/equipment/" + id }).done(function (eq) {
+    apiRequest({
+      url: "/api/equipment/" + id,
+      method: "PUT",
+      body: {
+        name: eq.name,
+        serialNumber: eq.serialNumber,
+        categoryId: eq.categoryId,
+        status: changes.status != null ? changes.status : eq.status,
+        currentCondition: changes.currentCondition != null ? changes.currentCondition : eq.currentCondition,
+        location: eq.location,
+        description: changes.description != null ? changes.description : eq.description,
+        imageUrl: eq.imageUrl
+      }
+    })
+      .done(function () {
+        showAlert($("#pageAlert"), changes.message || "Đã cập nhật thiết bị.", "success");
+        fetchEquipmentPage(eqPage);
+      })
+      .fail(function (xhr) {
+        showAlert($("#pageAlert"), getErrorMessage(xhr), "error");
+      });
+  });
+}
+
+function completeMaintenance(id) {
+  const condition = prompt("Tình trạng sau bảo trì (Good / Fair):", "Good");
+  if (!condition) return;
+  putEquipmentUpdate(id, {
+    status: "Available",
+    currentCondition: condition.trim(),
+    message: "Đã hoàn tất bảo trì."
+  });
+}
+
+function confirmCompensation(id) {
+  if (!confirm("Xác nhận người mượn đã đền bù? Thiết bị sẽ bị ẩn vĩnh viễn.")) return;
+  putEquipmentUpdate(id, {
+    status: "Compensated",
+    currentCondition: "Compensated",
+    message: "Đã xác nhận đền bù — thiết bị không còn hiển thị."
+  });
 }
 
 function fetchCategories() {
@@ -233,7 +321,6 @@ $(document).ready(function () {
   if (!requireStaffOrAdmin()) return;
   renderAuthNav("manage");
 
-  fetchEquipmentPage(1);
   fetchCategories();
 
   $(".tab-btn").on("click", function () {
@@ -253,6 +340,24 @@ $(document).ready(function () {
 
   $("#equipmentForm").on("submit", saveEquipment);
   $("#categoryForm").on("submit", saveCategory);
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("status")) {
+    eqFilterStatus = params.get("status");
+    $("#eqFilterStatus").val(eqFilterStatus);
+  }
+  if (params.get("currentCondition")) {
+    eqFilterCondition = params.get("currentCondition");
+    $("#eqFilterCondition").val(eqFilterCondition);
+  }
+
+  fetchEquipmentPage(1);
+
+  $("#eqFilterStatus, #eqFilterCondition").on("change", function () {
+    eqFilterStatus = $("#eqFilterStatus").val();
+    eqFilterCondition = $("#eqFilterCondition").val();
+    fetchEquipmentPage(1);
+  });
 
   $("[data-close]").on("click", function () {
     $(this).closest(".modal-overlay").removeClass("open");
