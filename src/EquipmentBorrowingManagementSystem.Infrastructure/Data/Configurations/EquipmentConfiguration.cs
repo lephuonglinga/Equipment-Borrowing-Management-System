@@ -15,7 +15,6 @@ public class EquipmentConfiguration : IEntityTypeConfiguration<Equipment>
         builder.HasIndex(e => e.SerialNumber).IsUnique();
 
         builder.Property(e => e.Status).HasConversion<int>();
-        builder.Property(e => e.CurrentCondition).HasConversion<int>();
         builder.Property(e => e.Location).HasMaxLength(200);
         builder.Property(e => e.Description).HasMaxLength(1000);
         builder.Property(e => e.ImageUrl).HasMaxLength(500);

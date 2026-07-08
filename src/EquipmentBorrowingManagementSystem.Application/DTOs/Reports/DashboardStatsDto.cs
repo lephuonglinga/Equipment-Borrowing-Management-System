@@ -22,10 +22,10 @@ public class DashboardStatsDto
     public EquipmentStatusCountDto EquipmentByStatus { get; set; } = new();
     public List<StatusCountDto> BorrowRequestsByStatus { get; set; } = [];
     public int OverdueRequestCount { get; set; }
-    /// <summary>Thiết bị đang có <c>CurrentCondition = Damaged</c> (thường status Maintenance, chờ sửa).</summary>
-    public int DamagedEquipmentCount { get; set; }
     /// <summary>Thiết bị đang <c>Status = Lost</c> (chờ xác nhận đền bù).</summary>
     public int LostEquipmentCount { get; set; }
+    /// <summary>Thiết bị đang <c>Status = Compensated</c> (đã đền bù).</summary>
+    public int CompensatedEquipmentCount { get; set; }
     public int MaintenanceEquipmentCount { get; set; }
     public List<MostBorrowedEquipmentDto> MostBorrowedEquipment { get; set; } = [];
 }

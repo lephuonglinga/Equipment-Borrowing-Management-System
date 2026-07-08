@@ -1,5 +1,5 @@
 // ERD — import at https://dbdiagram.io
-// Khớp schema EF Core hiện tại (migration EquipmentConditionWorkflow)
+// Khớp schema EF Core hiện tại (status-only workflow)
 
 Table users {
   id int [pk, increment]
@@ -39,7 +39,6 @@ Table equipments {
   serial_number varchar [unique, not null]
   category_id int [not null, ref: > equipment_categories.id]
   status int [not null, note: 'Available|Borrowed|Maintenance|Retired|Reserved|Lost|Compensated']
-  current_condition int [not null, note: 'Good|Fair|Damaged|Lost|Compensated']
   location varchar
   description varchar
   image_url varchar(500)
@@ -69,8 +68,6 @@ Table borrow_request_items {
   borrow_request_id int [not null, ref: > borrow_requests.id]
   equipment_id int [not null, ref: > equipments.id]
   quantity int [not null, default: 1]
-  condition_at_borrow int
-  condition_at_return int
   handover_note varchar(500)
   return_note varchar(500)
   created_at datetime [not null]
@@ -84,7 +81,6 @@ Table return_records {
   returned_at datetime [not null]
   returned_by_id int [not null, ref: > users.id]
   staff_note varchar
-  overall_condition int [not null]
   created_at datetime [not null]
   is_deleted bit [not null, default: false]
   deleted_at datetime

@@ -13,6 +13,5 @@ public class ReturnRecordConfiguration : IEntityTypeConfiguration<ReturnRecord>
         builder.HasIndex(r => r.BorrowRequestId).IsUnique();
 
         builder.Property(r => r.StaffNote).HasMaxLength(1000);
-        builder.Property(r => r.OverallCondition).HasConversion<int>();
     }
 }

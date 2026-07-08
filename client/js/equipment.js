@@ -86,11 +86,6 @@ function renderEquipmentCard(item) {
     "></div></a>" +
     '<div class="body">' +
     renderStatusBadge(item.status, "equipment") +
-    " " +
-    renderConditionBadge(item.currentCondition) +
-    (item.currentCondition === "Fair"
-      ? ' <span class="fair-warning" title="Thiết bị đã qua sử dụng">⚠</span>'
-      : "") +
     '<a class="card-link" href="' +
     detailHref +
     '"><h3>' +

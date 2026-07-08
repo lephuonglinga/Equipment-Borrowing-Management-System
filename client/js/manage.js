@@ -1,7 +1,6 @@
 let categories = [];
 let eqPage = 1;
 let eqFilterStatus = "";
-let eqFilterCondition = "";
 
 function loadCategories() {
   return apiRequest({ url: "/api/equipment-categories" });
@@ -14,9 +13,6 @@ function buildEquipmentQuery(page) {
     "&pageSize=10&sortBy=name&sortDirection=asc";
   if (eqFilterStatus) {
     url += "&status=" + encodeURIComponent(eqFilterStatus);
-  }
-  if (eqFilterCondition) {
-    url += "&currentCondition=" + encodeURIComponent(eqFilterCondition);
   }
   return url;
 }
@@ -43,7 +39,7 @@ function renderEquipmentTable(data) {
   }
 
   let html = '<table class="data-table"><thead><tr>';
-  html += "<th>Tên</th><th>Serial</th><th>Danh mục</th><th>Trạng thái</th><th>Tình trạng</th><th>Vị trí</th><th></th>";
+  html += "<th>Tên</th><th>Serial</th><th>Danh mục</th><th>Trạng thái</th><th>Vị trí</th><th></th>";
   html += "</tr></thead><tbody>";
 
   data.items.forEach(function (eq) {
@@ -52,7 +48,6 @@ function renderEquipmentTable(data) {
     html += "<td>" + escapeHtml(eq.serialNumber) + "</td>";
     html += "<td>" + escapeHtml(eq.categoryName) + "</td>";
     html += "<td>" + renderStatusBadge(eq.status, "equipment") + "</td>";
-    html += "<td>" + renderConditionBadge(eq.currentCondition) + "</td>";
     html += "<td>" + escapeHtml(eq.location || "—") + "</td>";
     html += '<td class="table-actions">';
     if (eq.status === "Maintenance") {
@@ -108,14 +103,12 @@ function openEquipmentForm(id) {
   if (id) {
     $("#equipmentModalTitle").text("Sửa thiết bị");
     $("#eqStatusGroup").show();
-    $("#eqConditionGroup").show();
     apiRequest({ url: "/api/equipment/" + id }).done(function (eq) {
       $("#eqId").val(eq.id);
       $("#eqName").val(eq.name);
       $("#eqSerial").val(eq.serialNumber);
       $("#eqCategory").val(eq.categoryId);
       $("#eqStatus").val(eq.status);
-      $("#eqCurrentCondition").val(eq.currentCondition || "Good");
       $("#eqLocation").val(eq.location || "");
       $("#eqDescription").val(eq.description || "");
       $("#eqImageUrl").val(eq.imageUrl || "");
@@ -125,7 +118,6 @@ function openEquipmentForm(id) {
     $("#equipmentModalTitle").text("Thêm thiết bị");
     $("#eqId").val("");
     $("#eqStatusGroup").hide();
-    $("#eqConditionGroup").hide();
     $("#equipmentForm")[0].reset();
     $("#equipmentModal").addClass("open");
   }
@@ -148,7 +140,6 @@ function saveEquipment(e) {
   let request;
   if (id) {
     body.status = $("#eqStatus").val();
-    body.currentCondition = $("#eqCurrentCondition").val();
     request = apiRequest({ url: "/api/equipment/" + id, method: "PUT", body: body });
   } else {
     request = apiRequest({ url: "/api/equipment", method: "POST", body: body });
@@ -187,7 +178,6 @@ function putEquipmentUpdate(id, changes) {
         serialNumber: eq.serialNumber,
         categoryId: eq.categoryId,
         status: changes.status != null ? changes.status : eq.status,
-        currentCondition: changes.currentCondition != null ? changes.currentCondition : eq.currentCondition,
         location: eq.location,
         description: changes.description != null ? changes.description : eq.description,
         imageUrl: eq.imageUrl
@@ -204,21 +194,17 @@ function putEquipmentUpdate(id, changes) {
 }
 
 function completeMaintenance(id) {
-  const condition = prompt("Tình trạng sau bảo trì (Good / Fair):", "Good");
-  if (!condition) return;
   putEquipmentUpdate(id, {
     status: "Available",
-    currentCondition: condition.trim(),
     message: "Đã hoàn tất bảo trì."
   });
 }
 
 function confirmCompensation(id) {
-  if (!confirm("Xác nhận người mượn đã đền bù? Thiết bị sẽ bị ẩn vĩnh viễn.")) return;
+  if (!confirm("Xác nhận người mượn đã đền bù?")) return;
   putEquipmentUpdate(id, {
     status: "Compensated",
-    currentCondition: "Compensated",
-    message: "Đã xác nhận đền bù — thiết bị không còn hiển thị."
+    message: "Đã xác nhận đền bù."
   });
 }
 
@@ -346,16 +332,11 @@ $(document).ready(function () {
     eqFilterStatus = params.get("status");
     $("#eqFilterStatus").val(eqFilterStatus);
   }
-  if (params.get("currentCondition")) {
-    eqFilterCondition = params.get("currentCondition");
-    $("#eqFilterCondition").val(eqFilterCondition);
-  }
 
   fetchEquipmentPage(1);
 
-  $("#eqFilterStatus, #eqFilterCondition").on("change", function () {
+  $("#eqFilterStatus").on("change", function () {
     eqFilterStatus = $("#eqFilterStatus").val();
-    eqFilterCondition = $("#eqFilterCondition").val();
     fetchEquipmentPage(1);
   });
 

@@ -12,6 +12,7 @@ public class UpdateEquipmentDtoValidator : AbstractValidator<UpdateEquipmentDto>
         EquipmentStatus.Available,
         EquipmentStatus.Maintenance,
         EquipmentStatus.Retired,
+        EquipmentStatus.Lost,
         EquipmentStatus.Compensated
     ];
 
@@ -25,18 +26,7 @@ public class UpdateEquipmentDtoValidator : AbstractValidator<UpdateEquipmentDto>
             .NotEmpty().WithMessage(ValidationMessages.Required)
             .Must(s => Enum.TryParse<EquipmentStatus>(s, ignoreCase: true, out var status) &&
                        StaffSettableStatuses.Contains(status))
-            .WithMessage(ValidationMessages.EquipmentStatusInvalid);
-
-        RuleFor(x => x.CurrentCondition)
-            .NotEmpty().WithMessage(ValidationMessages.Required)
-            .Must(s => Enum.TryParse<EquipmentCondition>(s, ignoreCase: true, out _))
-            .WithMessage(ValidationMessages.EquipmentConditionInvalid);
-
-        RuleFor(x => x)
-            .Must(dto =>
-                !string.Equals(dto.Status, nameof(EquipmentStatus.Compensated), StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(dto.CurrentCondition, nameof(EquipmentCondition.Compensated), StringComparison.OrdinalIgnoreCase))
-            .WithMessage(ValidationMessages.CompensatedPairRequired);
+            .WithMessage("Trạng thái phải là một trong: Available, Maintenance, Retired, Lost, Compensated.");
 
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(1000);

@@ -66,18 +66,6 @@ public class UpdateBorrowRequestDtoValidator : AbstractValidator<UpdateBorrowReq
                 context.AddFailure(nameof(dto.Items), ValidationMessages.EquipmentIdInvalid);
             }
 
-            if (string.IsNullOrWhiteSpace(item.ConditionAtBorrow))
-            {
-                context.AddFailure(nameof(dto.Items), ValidationMessages.HandoverConditionRequired);
-                continue;
-            }
-
-            if (!Enum.TryParse<EquipmentCondition>(item.ConditionAtBorrow, ignoreCase: true, out var condition) ||
-                !EquipmentRules.IsHandoverCondition(condition))
-            {
-                context.AddFailure(nameof(dto.Items), ValidationMessages.HandoverConditionInvalid);
-            }
-
             if (item.Note != null && item.Note.Length > 500)
             {
                 context.AddFailure(nameof(dto.Items), ValidationMessages.NoteMaxLength);
@@ -100,18 +88,6 @@ public class UpdateBorrowRequestDtoValidator : AbstractValidator<UpdateBorrowReq
             if (item.EquipmentId <= 0)
             {
                 context.AddFailure(nameof(dto.Items), ValidationMessages.EquipmentIdInvalid);
-            }
-
-            if (string.IsNullOrWhiteSpace(item.ConditionAtReturn))
-            {
-                context.AddFailure(nameof(dto.Items), ValidationMessages.ReturnConditionRequired);
-                continue;
-            }
-
-            if (!Enum.TryParse<EquipmentCondition>(item.ConditionAtReturn, ignoreCase: true, out var condition) ||
-                !EquipmentRules.IsReturnCondition(condition))
-            {
-                context.AddFailure(nameof(dto.Items), ValidationMessages.ReturnConditionInvalid);
             }
 
             if (item.Note != null && item.Note.Length > 500)

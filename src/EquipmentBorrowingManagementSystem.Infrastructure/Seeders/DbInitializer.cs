@@ -63,18 +63,18 @@ public static class DbInitializer
 
         var equipments = new List<Equipment>
         {
-            new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room A1", CreatedAt = seedTime },
-            new() { Name = "MacBook Pro 14", SerialNumber = "LAP-002", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room A1", CreatedAt = seedTime },
-            new() { Name = "HP EliteBook", SerialNumber = "LAP-003", CategoryId = categories[0].Id, Status = EquipmentStatus.Reserved, CurrentCondition = EquipmentCondition.Good, Location = "Room A2", CreatedAt = seedTime },
-            new() { Name = "Canon EOS R10", SerialNumber = "CAM-001", CategoryId = categories[1].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room B1", CreatedAt = seedTime },
-            new() { Name = "Sony A7 III", SerialNumber = "CAM-002", CategoryId = categories[1].Id, Status = EquipmentStatus.Maintenance, CurrentCondition = EquipmentCondition.Fair, Location = "Repair", CreatedAt = seedTime },
-            new() { Name = "Shure SM58", SerialNumber = "AUD-001", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room C1", CreatedAt = seedTime },
-            new() { Name = "JBL Speaker", SerialNumber = "AUD-002", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Fair, Location = "Room C1", CreatedAt = seedTime },
-            new() { Name = "Epson EB-X49", SerialNumber = "PRJ-001", CategoryId = categories[3].Id, Status = EquipmentStatus.Borrowed, CurrentCondition = EquipmentCondition.Good, Location = "Room D1", CreatedAt = seedTime },
-            new() { Name = "BenQ MH535A", SerialNumber = "PRJ-002", CategoryId = categories[3].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room D2", CreatedAt = seedTime },
-            new() { Name = "Digital Multimeter", SerialNumber = "TOL-001", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Lab 1", CreatedAt = seedTime },
-            new() { Name = "Oscilloscope", SerialNumber = "TOL-002", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Lab 1", CreatedAt = seedTime },
-            new() { Name = "Lenovo ThinkPad", SerialNumber = "LAP-004", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, CurrentCondition = EquipmentCondition.Good, Location = "Room A2", CreatedAt = seedTime }
+            new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = seedTime },
+            new() { Name = "MacBook Pro 14", SerialNumber = "LAP-002", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = seedTime },
+            new() { Name = "HP EliteBook", SerialNumber = "LAP-003", CategoryId = categories[0].Id, Status = EquipmentStatus.Reserved, Location = "Room A2", CreatedAt = seedTime },
+            new() { Name = "Canon EOS R10", SerialNumber = "CAM-001", CategoryId = categories[1].Id, Status = EquipmentStatus.Available, Location = "Room B1", CreatedAt = seedTime },
+            new() { Name = "Sony A7 III", SerialNumber = "CAM-002", CategoryId = categories[1].Id, Status = EquipmentStatus.Maintenance, Location = "Repair", CreatedAt = seedTime },
+            new() { Name = "Shure SM58", SerialNumber = "AUD-001", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = seedTime },
+            new() { Name = "JBL Speaker", SerialNumber = "AUD-002", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = seedTime },
+            new() { Name = "Epson EB-X49", SerialNumber = "PRJ-001", CategoryId = categories[3].Id, Status = EquipmentStatus.Borrowed, Location = "Room D1", CreatedAt = seedTime },
+            new() { Name = "BenQ MH535A", SerialNumber = "PRJ-002", CategoryId = categories[3].Id, Status = EquipmentStatus.Available, Location = "Room D2", CreatedAt = seedTime },
+            new() { Name = "Digital Multimeter", SerialNumber = "TOL-001", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = seedTime },
+            new() { Name = "Oscilloscope", SerialNumber = "TOL-002", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = seedTime },
+            new() { Name = "Lenovo ThinkPad", SerialNumber = "LAP-004", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A2", CreatedAt = seedTime }
         };
 
         context.Equipments.AddRange(equipments);
@@ -167,8 +167,6 @@ public static class DbInitializer
                 BorrowRequestId = completedRequest.Id,
                 EquipmentId = equipments[5].Id,
                 Quantity = 1,
-                ConditionAtBorrow = EquipmentCondition.Good,
-                ConditionAtReturn = EquipmentCondition.Good,
                 CreatedAt = seedTime.AddDays(1)
             },
             new BorrowRequestItem
@@ -183,7 +181,6 @@ public static class DbInitializer
                 BorrowRequestId = overdueRequest.Id,
                 EquipmentId = equipments[7].Id,
                 Quantity = 1,
-                ConditionAtBorrow = EquipmentCondition.Good,
                 HandoverNote = "Đủ phụ kiện",
                 CreatedAt = seedTime.AddDays(-10)
             }
@@ -195,7 +192,6 @@ public static class DbInitializer
             ReturnedAt = seedTime.AddDays(7),
             ReturnedById = staff.Id,
             StaffNote = "Returned in good condition",
-            OverallCondition = EquipmentCondition.Good,
             CreatedAt = seedTime.AddDays(7)
         });
 

@@ -8,7 +8,6 @@ public class Equipment : BaseEntity
     public string SerialNumber { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public EquipmentStatus Status { get; set; } = EquipmentStatus.Available;
-    public EquipmentCondition CurrentCondition { get; set; } = EquipmentCondition.Good;
     public string? Location { get; set; }
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }

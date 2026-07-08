@@ -28,12 +28,9 @@ function updateCartBar() {
 
 function renderBorrowButton(item) {
   if (!isBorrowableEquipment(item)) {
-    return '<p class="detail-note">Thiết bị không khả dụng để mượn (kiểm tra trạng thái và tình trạng).</p>';
+    return '<p class="detail-note">Thiết bị không khả dụng để mượn (kiểm tra trạng thái).</p>';
   }
   let html = "";
-  if (item.currentCondition === "Fair") {
-    html += '<p class="detail-note">Tình trạng Fair — thiết bị đã qua sử dụng.</p>';
-  }
   if (isInBorrowCart(item.id)) {
     html += '<button type="button" class="btn btn-card-cancel" id="btnCartToggle">Hủy chọn mượn</button>';
   } else {
@@ -56,7 +53,6 @@ function renderDetail(item) {
   html += "</div>";
   html += '<div class="equipment-detail-body">';
   html += renderStatusBadge(item.status, "equipment");
-  html += " " + renderConditionBadge(item.currentCondition);
   html += "<h1>" + escapeHtml(item.name) + "</h1>";
   html += '<div class="detail-grid">';
   html += '<div><div class="label">Serial</div>' + escapeHtml(item.serialNumber) + "</div>";

@@ -24,19 +24,11 @@ public static class ValidationMessages
     public const string RejectReasonMaxLength = "Lý do từ chối tối đa 500 ký tự.";
     public const string HandoverItemsRequired = "Phải gửi danh sách thiết bị khi bàn giao.";
     public const string ReturnItemsRequired = "Phải gửi danh sách thiết bị khi ghi nhận trả.";
-    public const string HandoverConditionRequired = "Thiếu tình trạng bàn giao (conditionAtBorrow).";
-    public const string HandoverConditionInvalid = "Tình trạng bàn giao phải là Good, Fair hoặc Damaged.";
-    public const string ReturnConditionRequired = "Thiếu tình trạng trả (conditionAtReturn).";
-    public const string ReturnConditionInvalid = "Tình trạng trả phải là Good, Fair, Damaged hoặc Lost.";
     public const string NoteMaxLength = "Ghi chú tối đa 500 ký tự.";
     public const string StaffNoteMaxLength = "Ghi chú nhân viên tối đa 500 ký tự.";
 
     public const string EquipmentStatusInvalid =
         "Trạng thái phải là một trong: Available, Maintenance, Retired, Compensated.";
-    public const string EquipmentConditionInvalid =
-        "Tình trạng phải là một trong: Good, Fair, Damaged, Lost, Compensated.";
-    public const string CompensatedPairRequired =
-        "Khi trạng thái Compensated, tình trạng cũng phải là Compensated.";
 
     public const string RefreshTokenRequired = "Refresh token là bắt buộc.";
 }

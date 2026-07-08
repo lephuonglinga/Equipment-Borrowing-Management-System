@@ -3,8 +3,6 @@ namespace EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
 public class UpdateBorrowRequestItemDto
 {
     public int EquipmentId { get; set; }
-    public string? ConditionAtBorrow { get; set; }
-    public string? ConditionAtReturn { get; set; }
     public string? Note { get; set; }
 }
 

@@ -7,12 +7,16 @@ function renderDashboard(data) {
   html += statCard("Maintenance", eq.maintenance);
   html += statCard("Quá hạn", data.overdueRequestCount, true);
   html +=
-    '<a href="manage.html?currentCondition=Damaged" class="stat-card-link">' +
-    statCard("Đang hư hỏng", data.damagedEquipmentCount, true) +
+    '<a href="manage.html?status=Maintenance" class="stat-card-link">' +
+    statCard("Đang bảo trì", data.maintenanceEquipmentCount, true) +
     "</a>";
   html +=
     '<a href="manage.html?status=Lost" class="stat-card-link">' +
     statCard("Đang mất", data.lostEquipmentCount, true) +
+    "</a>";
+  html +=
+    '<a href="manage.html?status=Compensated" class="stat-card-link">' +
+    statCard("Đã đền bù", data.compensatedEquipmentCount, true) +
     "</a>";
   html += "</div>";
 

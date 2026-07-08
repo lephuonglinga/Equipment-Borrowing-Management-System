@@ -30,14 +30,6 @@ public class EquipmentService : IEquipmentService
                 StatusCodes.Status400BadRequest);
         }
 
-        if (!string.IsNullOrWhiteSpace(query.CurrentCondition) &&
-            !Enum.TryParse<EquipmentCondition>(query.CurrentCondition, ignoreCase: true, out _))
-        {
-            return Result<PagedResult<EquipmentDto>>.Fail(
-                "Bộ lọc tình trạng không hợp lệ.",
-                StatusCodes.Status400BadRequest);
-        }
-
         var (items, totalCount) = await _unitOfWork.Equipment.GetPagedWithCategoryAsync(query);
 
         var paged = new PagedResult<EquipmentDto>
@@ -81,7 +73,6 @@ public class EquipmentService : IEquipmentService
             SerialNumber = dto.SerialNumber,
             CategoryId = dto.CategoryId,
             Status = EquipmentStatus.Available,
-            CurrentCondition = EquipmentCondition.Good,
             Location = dto.Location,
             Description = dto.Description,
             ImageUrl = dto.ImageUrl
@@ -107,12 +98,7 @@ public class EquipmentService : IEquipmentService
             return Result<EquipmentDto>.Fail(ValidationMessages.EquipmentStatusInvalid, StatusCodes.Status400BadRequest);
         }
 
-        if (!Enum.TryParse<EquipmentCondition>(dto.CurrentCondition, ignoreCase: true, out var targetCondition))
-        {
-            return Result<EquipmentDto>.Fail(ValidationMessages.EquipmentConditionInvalid, StatusCodes.Status400BadRequest);
-        }
-
-        var transitionError = ValidateEquipmentTransition(equipment, targetStatus, targetCondition);
+        var transitionError = ValidateEquipmentTransition(equipment, targetStatus);
         if (transitionError != null)
         {
             return Result<EquipmentDto>.Fail(transitionError, StatusCodes.Status400BadRequest);
@@ -121,7 +107,6 @@ public class EquipmentService : IEquipmentService
         if (equipment.Status is EquipmentStatus.Lost or EquipmentStatus.Compensated)
         {
             equipment.Status = targetStatus;
-            equipment.CurrentCondition = targetCondition;
             if (!string.IsNullOrWhiteSpace(dto.Description))
             {
                 equipment.Description = dto.Description;
@@ -147,7 +132,6 @@ public class EquipmentService : IEquipmentService
         equipment.SerialNumber = dto.SerialNumber;
         equipment.CategoryId = dto.CategoryId;
         equipment.Status = targetStatus;
-        equipment.CurrentCondition = targetCondition;
         equipment.Location = dto.Location;
         equipment.Description = dto.Description;
         equipment.ImageUrl = dto.ImageUrl;
@@ -185,13 +169,11 @@ public class EquipmentService : IEquipmentService
 
     private static string? ValidateEquipmentTransition(
         Equipment equipment,
-        EquipmentStatus targetStatus,
-        EquipmentCondition targetCondition)
+        EquipmentStatus targetStatus)
     {
         if (equipment.Status == EquipmentStatus.Lost)
         {
-            if (targetStatus != EquipmentStatus.Compensated ||
-                targetCondition != EquipmentCondition.Compensated)
+            if (targetStatus != EquipmentStatus.Compensated)
             {
                 return "Thiết bị Lost chỉ có thể chuyển sang Compensated.";
             }
@@ -213,24 +195,9 @@ public class EquipmentService : IEquipmentService
         }
 
         if (targetStatus == EquipmentStatus.Compensated &&
-            (equipment.Status != EquipmentStatus.Lost || targetCondition != EquipmentCondition.Compensated))
+            equipment.Status != EquipmentStatus.Lost)
         {
             return "Chỉ thiết bị Lost mới có thể chuyển sang Compensated.";
-        }
-
-        if (equipment.Status == EquipmentStatus.Maintenance && targetStatus == EquipmentStatus.Available)
-        {
-            if (!EquipmentRules.IsPostMaintenanceCondition(targetCondition))
-            {
-                return "Sau bảo trì, tình trạng phải là Good hoặc Fair.";
-            }
-        }
-
-        if (targetStatus == EquipmentStatus.Maintenance &&
-            equipment.Status == EquipmentStatus.Available &&
-            targetCondition is EquipmentCondition.Lost or EquipmentCondition.Compensated)
-        {
-            return "Không thể chuyển thiết bị Available sang bảo trì với tình trạng Lost/Compensated.";
         }
 
         return null;

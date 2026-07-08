@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EquipmentBorrowingManagementSystem.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260707033214_EquipmentConditionWorkflow")]
-    partial class EquipmentConditionWorkflow
+    [Migration("20260707100222_RemoveConditionWorkflow")]
+    partial class RemoveConditionWorkflow
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -147,12 +147,6 @@ namespace EquipmentBorrowingManagementSystem.Infrastructure.Data.Migrations
                     b.Property<int>("BorrowRequestId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ConditionAtBorrow")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ConditionAtReturn")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -199,9 +193,6 @@ namespace EquipmentBorrowingManagementSystem.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("CurrentCondition")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -381,9 +372,6 @@ namespace EquipmentBorrowingManagementSystem.Infrastructure.Data.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
-
-                    b.Property<int>("OverallCondition")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("ReturnedAt")
                         .HasColumnType("datetime2");

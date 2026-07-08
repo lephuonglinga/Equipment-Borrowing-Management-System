@@ -14,13 +14,9 @@ const STATUS_BY_NUMBER = {
   3: "Rejected",
   4: "Cancelled",
   5: "InProgress",
-  6: "Returned",
-  7: "Completed",
-  8: "Overdue"
+  6: "Completed",
+  7: "Overdue"
 };
-
-const HANDOVER_CONDITIONS = ["Good", "Fair", "Damaged"];
-const RETURN_CONDITIONS = ["Good", "Fair", "Damaged", "Lost"];
 
 function normalizeBorrowStatus(status) {
   if (status == null) return "";
@@ -84,32 +80,16 @@ function renderItemsList(items) {
   items.forEach(function (item) {
     html += "<li>";
     html += "<strong>" + escapeHtml(item.equipmentName) + "</strong> · " + escapeHtml(item.serialNumber);
-    if (item.conditionAtBorrow) {
-      html += '<div class="item-condition">Giao: ' + renderConditionBadge(item.conditionAtBorrow);
-      if (item.handoverNote) {
-        html += " — " + escapeHtml(item.handoverNote);
-      }
-      html += "</div>";
+    if (item.handoverNote) {
+      html += '<div class="item-condition">Giao: ' + escapeHtml(item.handoverNote) + "</div>";
     }
-    if (item.conditionAtReturn) {
-      html += '<div class="item-condition">Trả: ' + renderConditionBadge(item.conditionAtReturn);
-      if (item.conditionAtBorrow && conditionWorsened(item.conditionAtBorrow, item.conditionAtReturn)) {
-        html += ' <span class="condition-worse">(xấu hơn lúc giao)</span>';
-      }
-      if (item.returnNote) {
-        html += " — " + escapeHtml(item.returnNote);
-      }
-      html += "</div>";
+    if (item.returnNote) {
+      html += '<div class="item-condition">Trả: ' + escapeHtml(item.returnNote) + "</div>";
     }
     html += "</li>";
   });
   html += "</ul>";
   return html;
-}
-
-function conditionWorsened(atBorrow, atReturn) {
-  const order = { Good: 1, Fair: 2, Damaged: 3, Lost: 4, Compensated: 5 };
-  return (order[atReturn] || 0) > (order[atBorrow] || 0);
 }
 
 function renderRequestCard(r) {
@@ -270,23 +250,11 @@ function renderDetailBody(r) {
   return html;
 }
 
-function conditionSelectOptions(conditions, selected) {
-  let html = "";
-  conditions.forEach(function (c) {
-    html += '<option value="' + c + '"' + (selected === c ? " selected" : "") + ">" + c + "</option>";
-  });
-  return html;
-}
-
 function openHandoverForm(r) {
-  let formHtml = '<div class="section-title" style="margin-top:0;">Kiểm tra tình trạng khi bàn giao</div>';
+  let formHtml = '<div class="section-title" style="margin-top:0;">Bàn giao thiết bị</div>';
   (r.items || []).forEach(function (item) {
     formHtml += '<div class="form-group handover-item" data-eq="' + item.equipmentId + '">';
     formHtml += "<label>" + escapeHtml(item.equipmentName) + " · " + escapeHtml(item.serialNumber) + "</label>";
-    formHtml +=
-      '<select class="handover-condition">' +
-      conditionSelectOptions(HANDOVER_CONDITIONS, "Good") +
-      "</select>";
     formHtml += '<input type="text" class="handover-note" placeholder="Ghi chú (tùy chọn)">';
     formHtml += "</div>";
   });
@@ -300,7 +268,6 @@ function openHandoverForm(r) {
     $(".handover-item").each(function () {
       items.push({
         equipmentId: parseInt($(this).data("eq"), 10),
-        conditionAtBorrow: $(this).find(".handover-condition").val(),
         note: $(this).find(".handover-note").val().trim() || null
       });
     });
@@ -320,20 +287,11 @@ function openHandoverForm(r) {
 }
 
 function openReturnForm(r) {
-  let formHtml = '<div class="section-title" style="margin-top:0;">Kiểm tra tình trạng khi trả</div>';
+  let formHtml = '<div class="section-title" style="margin-top:0;">Ghi nhận trả thiết bị</div>';
   formHtml += '<div class="form-group"><label>Ghi chú staff</label><input type="text" id="staffNote"></div>';
   (r.items || []).forEach(function (item) {
-    const defaultCond = item.conditionAtBorrow || "Good";
     formHtml += '<div class="form-group return-item" data-eq="' + item.equipmentId + '">';
-    formHtml += "<label>" + escapeHtml(item.equipmentName);
-    if (item.conditionAtBorrow) {
-      formHtml += " (giao: " + escapeHtml(item.conditionAtBorrow) + ")";
-    }
-    formHtml += "</label>";
-    formHtml +=
-      '<select class="return-condition">' +
-      conditionSelectOptions(RETURN_CONDITIONS, defaultCond) +
-      "</select>";
+    formHtml += "<label>" + escapeHtml(item.equipmentName) + "</label>";
     formHtml += '<input type="text" class="return-note" placeholder="Ghi chú (tùy chọn)">';
     formHtml += "</div>";
   });
@@ -347,7 +305,6 @@ function openReturnForm(r) {
     $(".return-item").each(function () {
       items.push({
         equipmentId: parseInt($(this).data("eq"), 10),
-        conditionAtReturn: $(this).find(".return-condition").val(),
         note: $(this).find(".return-note").val().trim() || null
       });
     });

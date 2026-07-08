@@ -57,8 +57,7 @@ public class ReportRepository : IReportRepository
             ActiveRequests = statusCounts
                 .Where(s => s.Status is nameof(BorrowRequestStatus.Approved)
                     or nameof(BorrowRequestStatus.InProgress)
-                    or nameof(BorrowRequestStatus.Overdue)
-                    or nameof(BorrowRequestStatus.Returned))
+                    or nameof(BorrowRequestStatus.Overdue))
                 .Sum(s => s.Count),
             RejectedRequests = statusCounts
                 .Where(s => s.Status == BorrowRequestStatus.Rejected.ToString())
@@ -138,15 +137,13 @@ public class ReportRepository : IReportRepository
                 ((b.Status == BorrowRequestStatus.Approved || b.Status == BorrowRequestStatus.InProgress) &&
                  b.ExpectedReturnDate.Date < today));
 
-        var damagedEquipmentCount = await _context.Equipments
-            .AsNoTracking()
-            .CountAsync(e =>
-                e.Status != EquipmentStatus.Compensated &&
-                e.CurrentCondition == EquipmentCondition.Damaged);
-
         var lostEquipmentCount = await _context.Equipments
             .AsNoTracking()
             .CountAsync(e => e.Status == EquipmentStatus.Lost);
+
+        var compensatedEquipmentCount = await _context.Equipments
+            .AsNoTracking()
+            .CountAsync(e => e.Status == EquipmentStatus.Compensated);
 
         var maintenanceCount = equipmentCounts
             .Where(e => e.Status == EquipmentStatus.Maintenance)
@@ -203,8 +200,8 @@ public class ReportRepository : IReportRepository
             },
             BorrowRequestsByStatus = borrowStatusCounts,
             OverdueRequestCount = overdueCount,
-            DamagedEquipmentCount = damagedEquipmentCount,
             LostEquipmentCount = lostEquipmentCount,
+            CompensatedEquipmentCount = compensatedEquipmentCount,
             MaintenanceEquipmentCount = maintenanceCount,
             MostBorrowedEquipment = mostBorrowed
         };

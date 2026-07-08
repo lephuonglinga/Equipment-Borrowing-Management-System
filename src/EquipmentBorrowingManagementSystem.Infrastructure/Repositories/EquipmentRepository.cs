@@ -14,8 +14,7 @@ public class EquipmentRepository : GenericRepository<Equipment>, IEquipmentRepos
         BorrowRequestStatus.Pending,
         BorrowRequestStatus.Approved,
         BorrowRequestStatus.InProgress,
-        BorrowRequestStatus.Overdue,
-        BorrowRequestStatus.Returned
+        BorrowRequestStatus.Overdue
     ];
 
     public EquipmentRepository(AppDbContext context) : base(context)
@@ -27,7 +26,7 @@ public class EquipmentRepository : GenericRepository<Equipment>, IEquipmentRepos
         var dbQuery = Context.Equipments
             .Include(e => e.Category)
             .AsNoTracking()
-            .Where(e => e.Status != EquipmentStatus.Compensated);
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -47,12 +46,6 @@ public class EquipmentRepository : GenericRepository<Equipment>, IEquipmentRepos
             dbQuery = dbQuery.Where(e => e.Status == status);
         }
 
-        if (!string.IsNullOrWhiteSpace(query.CurrentCondition) &&
-            Enum.TryParse<EquipmentCondition>(query.CurrentCondition, ignoreCase: true, out var condition))
-        {
-            dbQuery = dbQuery.Where(e => e.CurrentCondition == condition);
-        }
-
         var totalCount = await dbQuery.CountAsync();
 
         dbQuery = ApplySorting(dbQuery, query.SortBy, query.SortDirection);
@@ -70,7 +63,7 @@ public class EquipmentRepository : GenericRepository<Equipment>, IEquipmentRepos
         return await Context.Equipments
             .Include(e => e.Category)
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == id && e.Status != EquipmentStatus.Compensated);
+            .FirstOrDefaultAsync(e => e.Id == id);
     }
 
     public async Task<bool> SerialNumberExistsAsync(string serialNumber, int? excludeId = null)

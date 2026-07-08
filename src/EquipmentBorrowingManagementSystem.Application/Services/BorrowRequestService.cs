@@ -104,7 +104,7 @@ public class BorrowRequestService : IBorrowRequestService
                     StatusCodes.Status404NotFound);
             }
 
-            if (!EquipmentRules.IsBorrowable(equipment.Status, equipment.CurrentCondition))
+            if (!EquipmentRules.IsBorrowable(equipment.Status))
             {
                 return Result<BorrowRequestDto>.Fail(
                     DescribeUnavailableEquipment(equipment),
@@ -247,7 +247,7 @@ public class BorrowRequestService : IBorrowRequestService
 
         foreach (var item in request.Items)
         {
-            var (condition, note) = handoverMap[item.EquipmentId];
+            var note = handoverMap[item.EquipmentId];
             if (item.Equipment.Status != EquipmentStatus.Reserved)
             {
                 return Result<BorrowRequestDto>.Fail(
@@ -255,10 +255,8 @@ public class BorrowRequestService : IBorrowRequestService
                     StatusCodes.Status400BadRequest);
             }
 
-            item.ConditionAtBorrow = condition;
             item.HandoverNote = note;
             item.Equipment.Status = EquipmentStatus.Borrowed;
-            item.Equipment.CurrentCondition = condition;
             _unitOfWork.Equipment.Update(item.Equipment);
         }
 
@@ -384,20 +382,12 @@ public class BorrowRequestService : IBorrowRequestService
                 StatusCodes.Status400BadRequest);
         }
 
-        var worstCondition = EquipmentCondition.Good;
         foreach (var item in request.Items)
         {
-            var (condition, note) = returnMap[item.EquipmentId];
-            item.ConditionAtReturn = condition;
+            var note = returnMap[item.EquipmentId];
             item.ReturnNote = note;
-            item.Equipment.Status = EquipmentRules.MapReturnConditionToStatus(condition);
-            item.Equipment.CurrentCondition = condition;
+            item.Equipment.Status = EquipmentStatus.Available;
             _unitOfWork.Equipment.Update(item.Equipment);
-
-            if (condition > worstCondition)
-            {
-                worstCondition = condition;
-            }
         }
 
         request.Status = BorrowRequestStatus.Completed;
@@ -405,8 +395,7 @@ public class BorrowRequestService : IBorrowRequestService
         {
             ReturnedById = _currentUser.UserId.Value,
             ReturnedAt = DateTime.UtcNow,
-            StaffNote = dto.StaffNote,
-            OverallCondition = worstCondition
+            StaffNote = dto.StaffNote
         };
         _unitOfWork.BorrowRequests.Update(request);
 
@@ -447,43 +436,29 @@ public class BorrowRequestService : IBorrowRequestService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    private static Dictionary<int, (EquipmentCondition Condition, string? Note)> ParseHandoverMap(
+    private static Dictionary<int, string?> ParseHandoverMap(
         List<UpdateBorrowRequestItemDto> items,
         out string? error)
     {
         error = null;
-        var map = new Dictionary<int, (EquipmentCondition, string?)>();
+        var map = new Dictionary<int, string?>();
         foreach (var itemDto in items)
         {
-            if (!Enum.TryParse<EquipmentCondition>(itemDto.ConditionAtBorrow, ignoreCase: true, out var condition) ||
-                !EquipmentRules.IsHandoverCondition(condition))
-            {
-                error = ValidationMessages.HandoverConditionInvalid;
-                return map;
-            }
-
-            map[itemDto.EquipmentId] = (condition, itemDto.Note?.Trim());
+            map[itemDto.EquipmentId] = itemDto.Note?.Trim();
         }
 
         return map;
     }
 
-    private static Dictionary<int, (EquipmentCondition Condition, string? Note)> ParseReturnMap(
+    private static Dictionary<int, string?> ParseReturnMap(
         List<UpdateBorrowRequestItemDto> items,
         out string? error)
     {
         error = null;
-        var map = new Dictionary<int, (EquipmentCondition, string?)>();
+        var map = new Dictionary<int, string?>();
         foreach (var itemDto in items)
         {
-            if (!Enum.TryParse<EquipmentCondition>(itemDto.ConditionAtReturn, ignoreCase: true, out var condition) ||
-                !EquipmentRules.IsReturnCondition(condition))
-            {
-                error = ValidationMessages.ReturnConditionInvalid;
-                return map;
-            }
-
-            map[itemDto.EquipmentId] = (condition, itemDto.Note?.Trim());
+            map[itemDto.EquipmentId] = itemDto.Note?.Trim();
         }
 
         return map;
@@ -501,7 +476,7 @@ public class BorrowRequestService : IBorrowRequestService
             return $"Thiết bị '{equipment.Name}' không khả dụng (trạng thái: {equipment.Status}).";
         }
 
-        return $"Thiết bị '{equipment.Name}' không đủ điều kiện mượn (tình trạng: {equipment.CurrentCondition}).";
+        return $"Thiết bị '{equipment.Name}' không đủ điều kiện mượn (trạng thái: {equipment.Status}).";
     }
 
     private static void ReleaseReservedEquipment(BorrowRequest request, IUnitOfWork unitOfWork)

@@ -7,7 +7,6 @@ public enum BorrowRequestStatus
     Rejected = 3,
     Cancelled = 4,
     InProgress = 5,
-    Returned = 6,
-    Completed = 7,
-    Overdue = 8
+    Completed = 6,
+    Overdue = 7
 }

@@ -7,8 +7,6 @@ public class BorrowRequestItemDto
     public string EquipmentName { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;
     public int Quantity { get; set; }
-    public string? ConditionAtBorrow { get; set; }
-    public string? ConditionAtReturn { get; set; }
     public string? HandoverNote { get; set; }
     public string? ReturnNote { get; set; }
 }

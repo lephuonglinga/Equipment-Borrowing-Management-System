@@ -15,9 +15,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CategoryName,
                 opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
             .ForMember(dest => dest.Status,
-                opt => opt.MapFrom(src => src.Status.ToString()))
-            .ForMember(dest => dest.CurrentCondition,
-                opt => opt.MapFrom(src => src.CurrentCondition.ToString()));
+                opt => opt.MapFrom(src => src.Status.ToString()));
 
         CreateMap<EquipmentCategory, EquipmentCategoryDto>();
 
@@ -25,11 +23,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.EquipmentName,
                 opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.Name : string.Empty))
             .ForMember(dest => dest.SerialNumber,
-                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty))
-            .ForMember(dest => dest.ConditionAtBorrow,
-                opt => opt.MapFrom(src => src.ConditionAtBorrow != null ? src.ConditionAtBorrow.ToString() : null))
-            .ForMember(dest => dest.ConditionAtReturn,
-                opt => opt.MapFrom(src => src.ConditionAtReturn != null ? src.ConditionAtReturn.ToString() : null));
+                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty));
 
         CreateMap<BorrowRequest, BorrowRequestDto>()
             .ForMember(dest => dest.UserName,

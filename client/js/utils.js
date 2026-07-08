@@ -57,7 +57,6 @@ function borrowStatusClass(status) {
     Rejected: "borrow-rejected",
     Cancelled: "borrow-cancelled",
     InProgress: "borrow-progress",
-    Returned: "borrow-returned",
     Completed: "borrow-completed",
     Overdue: "borrow-overdue"
   };
@@ -69,25 +68,8 @@ function renderStatusBadge(status, type) {
   return '<span class="status-badge ' + cls + '">' + escapeHtml(status) + "</span>";
 }
 
-function equipmentConditionClass(condition) {
-  return "condition-" + (condition || "good").toLowerCase();
-}
-
-function renderConditionBadge(condition) {
-  if (!condition) return "—";
-  return (
-    '<span class="condition-badge ' +
-    equipmentConditionClass(condition) +
-    '">' +
-    escapeHtml(condition) +
-    "</span>"
-  );
-}
-
 function isBorrowableEquipment(item) {
-  if (!item || item.status !== "Available") return false;
-  const c = (item.currentCondition || "").toLowerCase();
-  return c === "good" || c === "fair";
+  return !!item && item.status === "Available";
 }
 
 function requireStaffOrAdmin() {
