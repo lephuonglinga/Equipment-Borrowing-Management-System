@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280" role="img" aria-label="No equipment image">
+  <rect width="400" height="280" fill="#FFFFFF" />
+  <rect x="1" y="1" width="398" height="278" rx="12" fill="#FDF0D5" stroke="#E5748F" stroke-width="2" />
+  <g transform="translate(200 118)">
+    <rect x="-44" y="-34" width="88" height="62" rx="10" fill="#FBD1DB" stroke="#E5748F" stroke-width="3" />
+    <circle cx="-14" cy="-10" r="8" fill="#E5748F" opacity="0.8" />
+    <path d="M-30 16 L-6 -2 L10 12 L24 0 L34 16" fill="none" stroke="#E5748F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="-16" y="30" width="32" height="8" rx="4" fill="#F2C14E" />
+  </g>
+  <text x="200" y="206" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600" fill="#A83A50">No image available</text>
+</svg>

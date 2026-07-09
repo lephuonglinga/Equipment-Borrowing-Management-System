@@ -1,0 +1,126 @@
+@page
+@using EquipmentBorrowingManagementSystem.Web.Helpers
+@model EquipmentBorrowingManagementSystem.Web.Pages.Reports.IndexModel
+@{
+    ViewData["Title"] = "Báo cáo";
+    ViewData["ActivePage"] = "reports";
+}
+
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1>Báo cáo</h1>
+            <p class="subtitle">Dashboard, yêu cầu quá hạn và tổng hợp mượn theo khoảng ngày.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+
+    @if (Model.Dashboard is not null)
+    {
+        <div class="stats-grid">
+            <div class="stat-card"><div class="label">Tổng thiết bị</div><div class="value">@Model.Dashboard.EquipmentByStatus.Total</div></div>
+            <div class="stat-card"><div class="label">Available</div><div class="value">@Model.Dashboard.EquipmentByStatus.Available</div></div>
+            <div class="stat-card"><div class="label">Borrowed</div><div class="value">@Model.Dashboard.EquipmentByStatus.Borrowed</div></div>
+            <div class="stat-card"><div class="label">Maintenance</div><div class="value">@Model.Dashboard.EquipmentByStatus.Maintenance</div></div>
+            <div class="stat-card accent"><div class="label">Quá hạn</div><div class="value">@Model.Dashboard.OverdueRequestCount</div></div>
+            <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Maintenance"><div class="stat-card accent"><div class="label">Đang bảo trì</div><div class="value">@Model.Dashboard.MaintenanceEquipmentCount</div></div></a>
+            <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Lost"><div class="stat-card accent"><div class="label">Đang mất</div><div class="value">@Model.Dashboard.LostEquipmentCount</div></div></a>
+            <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Compensated"><div class="stat-card accent"><div class="label">Đã đền bù</div><div class="value">@Model.Dashboard.CompensatedEquipmentCount</div></div></a>
+        </div>
+
+        @if (Model.Dashboard.BorrowRequestsByStatus.Count > 0)
+        {
+            <div class="section-title">Yêu cầu mượn theo trạng thái</div>
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Status</th><th>Số lượng</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.Dashboard.BorrowRequestsByStatus)
+                        {
+                            <tr><td>@Html.Raw(DisplayHelper.StatusBadge(row.Status, "borrow"))</td><td>@row.Count</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.Dashboard.MostBorrowedEquipment.Count > 0)
+        {
+            <div class="section-title">Thiết bị mượn nhiều nhất</div>
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Thiết bị</th><th>Serial</th><th>Lượt mượn</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.Dashboard.MostBorrowedEquipment)
+                        {
+                            <tr><td>@row.EquipmentName</td><td>@row.SerialNumber</td><td>@row.BorrowCount</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+
+    <div class="section-title">Yêu cầu quá hạn</div>
+    @if (Model.OverdueRequests.Count == 0)
+    {
+        <p class="empty-state">Không có yêu cầu quá hạn.</p>
+    }
+    else
+    {
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>Người mượn</th><th>Email</th><th>Trả dự kiến</th><th>Quá (ngày)</th><th>Thiết bị</th></tr></thead>
+                <tbody>
+                    @foreach (var r in Model.OverdueRequests)
+                    {
+                        <tr>
+                            <td>#@r.Id</td>
+                            <td>@r.UserName</td>
+                            <td>@r.UserEmail</td>
+                            <td>@DisplayHelper.FormatDate(r.ExpectedReturnDate)</td>
+                            <td><strong>@r.DaysOverdue</strong></td>
+                            <td>@string.Join(", ", r.Items.Select(i => i.EquipmentName))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="section-title">Tổng hợp mượn theo ngày</div>
+    <form method="get" class="toolbar-row">
+        <div class="form-group"><label>Từ ngày</label><input type="date" name="fromDate" value="@Model.FromDate" /></div>
+        <div class="form-group"><label>Đến ngày</label><input type="date" name="toDate" value="@Model.ToDate" /></div>
+        <button type="submit" class="btn btn-primary">Xem</button>
+    </form>
+
+    @if (Model.Summary is not null)
+    {
+        <div class="stats-grid">
+            <div class="stat-card"><div class="label">Tổng yêu cầu</div><div class="value">@Model.Summary.TotalRequests</div></div>
+            <div class="stat-card"><div class="label">Hoàn thành</div><div class="value">@Model.Summary.CompletedRequests</div></div>
+            <div class="stat-card"><div class="label">Đang active</div><div class="value">@Model.Summary.ActiveRequests</div></div>
+            <div class="stat-card"><div class="label">Từ chối</div><div class="value">@Model.Summary.RejectedRequests</div></div>
+            <div class="stat-card"><div class="label">Đã hủy</div><div class="value">@Model.Summary.CancelledRequests</div></div>
+        </div>
+        @if (Model.Summary.RequestsByStatus.Count > 0)
+        {
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Status</th><th>Số lượng</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.Summary.RequestsByStatus)
+                        {
+                            <tr><td>@Html.Raw(DisplayHelper.StatusBadge(row.Status, "borrow"))</td><td>@row.Count</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>

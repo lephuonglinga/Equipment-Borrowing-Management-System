@@ -1,0 +1,61 @@
+@page "{id:int}"
+@model EquipmentBorrowingManagementSystem.Web.Pages.Users.DetailModel
+@{
+    ViewData["Title"] = Model.UserDetail?.FullName ?? "User detail";
+    ViewData["ActivePage"] = "users";
+}
+
+<div class="page-wrap">
+    <a class="detail-back" asp-page="/Users/Index"><i class="fa-solid fa-arrow-left"></i> Quay lại danh sách</a>
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-error">@error</div>
+    }
+
+    @if (Model.UserDetail is null)
+    {
+        <p class="empty-state">Không tìm thấy user.</p>
+    }
+    else
+    {
+        <div class="user-detail card card-accent">
+            <h1>@Model.UserDetail.FullName</h1>
+            <div class="detail-grid">
+                <div><div class="label">ID</div>@Model.UserDetail.Id</div>
+                <div><div class="label">Role</div>@Model.UserDetail.Role</div>
+                <div><div class="label">Email</div>@Model.UserDetail.Email</div>
+                <div><div class="label">Trạng thái</div>
+                    @if (Model.UserDetail.IsActive)
+                    {
+                        <span class="status-badge status-available">Active</span>
+                    }
+                    else
+                    {
+                        <span class="status-badge borrow-rejected">Inactive</span>
+                    }
+                </div>
+                <div><div class="label">Ngày tạo</div>@Model.UserDetail.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</div>
+            </div>
+            <div class="detail-actions">
+                @if (Model.IsSelf)
+                {
+                    <p class="detail-note">Đây là tài khoản đang đăng nhập — không thể tự kích hoạt/vô hiệu.</p>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="ToggleActive" onsubmit="return confirm('@(Model.UserDetail.IsActive ? "Vô hiệu hóa user này?" : "Kích hoạt user này?")');">
+                        <input type="hidden" name="activate" value="@(!Model.UserDetail.IsActive)" />
+                        <button type="submit" class="btn @(Model.UserDetail.IsActive ? "btn-danger" : "btn-success")">
+                            @(Model.UserDetail.IsActive ? "Vô hiệu hóa" : "Kích hoạt")
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+</div>

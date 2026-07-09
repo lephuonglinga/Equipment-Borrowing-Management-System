@@ -1,0 +1,51 @@
+@page
+@model EquipmentBorrowingManagementSystem.Web.Pages.Account.LoginModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="auth-shell">
+    <aside class="auth-brand">
+        <div class="logo-mark"><i class="fa-solid fa-toolbox"></i></div>
+        <h2>Equipment Borrowing Management</h2>
+        <p>Hệ thống quản lý mượn — trả thiết bị. Đăng nhập để tiếp tục.</p>
+    </aside>
+    <main class="auth-main">
+        <div class="auth-topbar">
+            <a asp-page="/Account/Login" class="active">Đăng nhập</a>
+            <a asp-page="/Account/Register">Đăng ký</a>
+        </div>
+        <div class="auth-content">
+            <div class="card card-accent auth-card">
+                <div class="page-header">
+                    <div>
+                        <h1>Đăng nhập</h1>
+                        <p class="subtitle">Nhập email và mật khẩu tài khoản của bạn.</p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                {
+                    <div class="alert alert-error">@Model.ErrorMessage</div>
+                }
+
+                <form method="post">
+                    <div class="form-group">
+                        <label asp-for="Input.Email">Email</label>
+                        <input asp-for="Input.Email" type="email" autocomplete="username" placeholder="user@ebms.local" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Input.Password">Mật khẩu</label>
+                        <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+                    </div>
+                    <input type="hidden" asp-for="Input.ReturnUrl" />
+                    <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
+                </form>
+                <div class="form-footer">
+                    Chưa có tài khoản? <a asp-page="/Account/Register">Đăng ký</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>

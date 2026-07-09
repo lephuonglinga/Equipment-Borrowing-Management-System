@@ -1,0 +1,171 @@
+@page
+@using EquipmentBorrowingManagementSystem.Web.Helpers
+@model EquipmentBorrowingManagementSystem.Web.Pages.Equipment.IndexModel
+@{
+    ViewData["Title"] = "Equipments";
+    ViewData["ActivePage"] = "equipment";
+    ViewData["BodyClass"] = Model.Cart.Count > 0 ? "has-cart-bar" : "";
+}
+
+<div class="page-wrap equipment-page">
+    <div class="page-header">
+        <div>
+            <h1>@Model.PageTitle</h1>
+            <p class="subtitle">@Model.PageSubtitle</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success">@success</div>
+    }
+
+    <form method="get" class="equipment-toolbar">
+        <div class="form-group search-group">
+            <label>Tìm kiếm</label>
+            <input type="text" name="search" value="@Model.Search" placeholder="Tên, serial..." />
+        </div>
+        <div class="form-group">
+            <label>Danh mục</label>
+            <select name="categoryId">
+                <option value="">Tất cả</option>
+                @foreach (var cat in Model.Categories)
+                {
+                    <option value="@cat.Id" selected="@(Model.CategoryId == cat.Id)">@cat.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Trạng thái</label>
+            <select name="status">
+                <option value="">Tất cả</option>
+                @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Retired", "Lost" })
+                {
+                    <option value="@status" selected="@(Model.Status == status)">@status</option>
+                }
+            </select>
+        </div>
+        <input type="hidden" name="pageNumber" value="1" />
+        <button type="submit" class="btn btn-primary">Lọc</button>
+    </form>
+
+    @if (Model.EquipmentPage?.Items.Count > 0)
+    {
+        <div class="equipment-grid">
+            @foreach (var item in Model.EquipmentPage.Items)
+            {
+                var inCart = Model.Cart.Any(c => c.Id == item.Id);
+                <article class="equipment-card @(inCart ? "in-cart" : "")">
+                    <a class="thumb-link" asp-page="/Equipment/Detail" asp-route-id="@item.Id" asp-route-categoryId="@Model.CategoryId">
+                        <div class="thumb">
+                            <img src="@DisplayHelper.EquipmentImageUrl(item.ImageUrl)"
+                                 alt="@item.Name"
+                                 loading="lazy"
+                                 onerror="this.onerror=null;this.src='/images/equipment-default.svg';" />
+                        </div>
+                    </a>
+                    <div class="body">
+                        @Html.Raw(DisplayHelper.StatusBadge(item.Status, "equipment"))
+                        <a asp-page="/Equipment/Detail" asp-route-id="@item.Id" asp-route-categoryId="@Model.CategoryId">
+                            <h3>@item.Name</h3>
+                        </a>
+                        <div class="meta"><strong>@item.SerialNumber</strong> · @item.CategoryName</div>
+                        <div class="meta"><i class="fa-solid fa-location-dot"></i> @(item.Location ?? "—")</div>
+                        @if (DisplayHelper.IsBorrowable(item.Status))
+                        {
+                            <div class="card-actions">
+                                <form method="post" asp-page-handler="ToggleCart">
+                                    <input type="hidden" name="equipmentId" value="@item.Id" />
+                                    <input type="hidden" name="search" value="@Model.Search" />
+                                    <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                    <input type="hidden" name="status" value="@Model.Status" />
+                                    <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                                    <button type="submit" class="btn btn-sm @(inCart ? "btn-danger" : "btn-success")">
+                                        @(inCart ? "Hủy" : "Mượn")
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+
+        @if (Model.EquipmentPage.TotalPages > 1)
+        {
+            <div class="equipment-pagination">
+                <form method="get" style="display:inline;">
+                    <input type="hidden" name="search" value="@Model.Search" />
+                    <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                    <input type="hidden" name="status" value="@Model.Status" />
+                    <input type="hidden" name="pageNumber" value="@(Model.PageNumber - 1)" />
+                    <button type="submit" class="btn btn-neutral btn-sm" disabled="@(!Model.EquipmentPage.HasPrevious)">Trước</button>
+                </form>
+                <span>Trang @Model.EquipmentPage.PageNumber / @Model.EquipmentPage.TotalPages (@Model.EquipmentPage.TotalCount thiết bị)</span>
+                <form method="get" style="display:inline;">
+                    <input type="hidden" name="search" value="@Model.Search" />
+                    <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                    <input type="hidden" name="status" value="@Model.Status" />
+                    <input type="hidden" name="pageNumber" value="@(Model.PageNumber + 1)" />
+                    <button type="submit" class="btn btn-neutral btn-sm" disabled="@(!Model.EquipmentPage.HasNext)">Sau</button>
+                </form>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state"><i class="fa-solid fa-box-open"></i><p>Không tìm thấy thiết bị phù hợp.</p></div>
+    }
+</div>
+
+@if (Model.Cart.Count > 0)
+{
+    <div class="borrow-cart-bar">
+        <div>Đã chọn <strong>@Model.Cart.Count</strong> thiết bị</div>
+        <div class="borrow-cart-bar-actions">
+            <button type="button" class="btn btn-success" id="openBorrowModal">Đăng ký mượn</button>
+            <form method="post" asp-page-handler="ClearCart" style="display:inline;">
+                <button type="submit" class="btn btn-neutral">Bỏ chọn</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmBorrowModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Xác nhận mượn</h2>
+                <button type="button" class="btn btn-neutral btn-sm" data-close>&times;</button>
+            </div>
+            <form method="post" asp-page-handler="SubmitBorrow">
+                <div class="modal-body">
+                    <ul class="item-list">
+                        @foreach (var item in Model.Cart)
+                        {
+                            <li><strong>@item.Name</strong> · @item.SerialNumber</li>
+                        }
+                    </ul>
+                    <div class="form-group">
+                        <label>Ngày mượn</label>
+                        <input type="date" name="borrowDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày trả dự kiến</label>
+                        <input type="date" name="expectedReturnDate" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Mục đích</label>
+                        <textarea name="purpose" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-neutral" data-close>Hủy</button>
+                    <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}

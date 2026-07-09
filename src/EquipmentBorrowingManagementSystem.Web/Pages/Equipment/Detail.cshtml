@@ -1,0 +1,68 @@
+@page "{id:int}"
+@using EquipmentBorrowingManagementSystem.Web.Helpers
+@model EquipmentBorrowingManagementSystem.Web.Pages.Equipment.DetailModel
+@{
+    ViewData["Title"] = Model.Equipment?.Name ?? "Chi tiết thiết bị";
+    ViewData["ActivePage"] = "equipment";
+    ViewData["BodyClass"] = Model.CartCount > 0 ? "has-cart-bar" : "";
+}
+
+<div class="page-wrap">
+    <a class="detail-back" asp-page="/Equipment/Index" asp-route-categoryId="@Model.CategoryId">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+    </a>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+    else if (Model.Equipment is not null)
+    {
+        <div class="equipment-detail">
+            <div class="equipment-detail-image">
+                <img src="@DisplayHelper.EquipmentImageUrl(Model.Equipment.ImageUrl)"
+                     alt="@Model.Equipment.Name"
+                     onerror="this.onerror=null;this.src='/images/equipment-default.svg';" />
+            </div>
+            <div class="equipment-detail-body">
+                @Html.Raw(DisplayHelper.StatusBadge(Model.Equipment.Status, "equipment"))
+                <h1>@Model.Equipment.Name</h1>
+                <div class="detail-grid">
+                    <div><div class="label">Serial</div>@Model.Equipment.SerialNumber</div>
+                    <div><div class="label">Danh mục</div>@Model.Equipment.CategoryName</div>
+                    <div><div class="label">Vị trí</div>@(Model.Equipment.Location ?? "—")</div>
+                    <div class="full"><div class="label">Mô tả</div>@(Model.Equipment.Description ?? "—")</div>
+                </div>
+                <div class="detail-actions">
+                    @if (DisplayHelper.IsBorrowable(Model.Equipment.Status))
+                    {
+                        <form method="post" asp-page-handler="ToggleCart">
+                            <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                            <button type="submit" class="btn @(Model.InCart ? "btn-danger" : "btn-success")">
+                                @(Model.InCart ? "Hủy chọn mượn" : "Mượn")
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="detail-note">Thiết bị không khả dụng để mượn.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.CartCount > 0)
+{
+    <div class="borrow-cart-bar">
+        <div>Đã chọn <strong>@Model.CartCount</strong> thiết bị</div>
+        <div class="borrow-cart-bar-actions">
+            <a class="btn btn-success" asp-page="/Equipment/Index">Đăng ký mượn</a>
+            <form method="post" asp-page-handler="ClearCart" style="display:inline;">
+                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                <button type="submit" class="btn btn-neutral">Bỏ chọn</button>
+            </form>
+        </div>
+    </div>
+}

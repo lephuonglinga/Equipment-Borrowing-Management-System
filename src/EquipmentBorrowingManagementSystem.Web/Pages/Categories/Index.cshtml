@@ -1,0 +1,38 @@
+@page
+@model EquipmentBorrowingManagementSystem.Web.Pages.Categories.IndexModel
+@{
+    ViewData["Title"] = "Categories";
+    ViewData["ActivePage"] = "categories";
+}
+
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1>Categories</h1>
+            <p class="subtitle">Chọn danh mục để xem thiết bị.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+
+    @if (Model.Categories.Count == 0)
+    {
+        <p class="empty-state">Chưa có danh mục.</p>
+    }
+    else
+    {
+        <div class="category-grid">
+            @foreach (var cat in Model.Categories)
+            {
+                <a class="category-card" asp-page="/Equipment/Index" asp-route-categoryId="@cat.Id">
+                    <i class="fa-solid fa-folder"></i>
+                    <h3>@cat.Name</h3>
+                    <p>@(cat.Description ?? "")</p>
+                </a>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,167 @@
+@page
+@using EquipmentBorrowingManagementSystem.Web.Helpers
+@model EquipmentBorrowingManagementSystem.Web.Pages.Borrow.IndexModel
+@{
+    ViewData["Title"] = Model.IsStaff ? "Duyệt mượn" : "Yêu cầu mượn";
+    ViewData["ActivePage"] = "borrow";
+}
+
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1>@ViewData["Title"]</h1>
+            <p class="subtitle">@Model.Subtitle</p>
+        </div>
+        @if (!Model.IsStaff)
+        {
+            <a class="btn btn-success" asp-page="/Equipment/Index">Mượn thêm</a>
+        }
+    </div>
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-error">@error</div>
+    }
+
+    <div class="tab-bar">
+        <a asp-page="/Borrow/Index" asp-route-tab="pending" class="@(Model.ActiveTab == "pending" ? "active" : "")">Chờ duyệt (@Model.CountByTab("pending"))</a>
+        <a asp-page="/Borrow/Index" asp-route-tab="pickup" class="@(Model.ActiveTab == "pickup" ? "active" : "")">Chờ bàn giao (@Model.CountByTab("pickup"))</a>
+        <a asp-page="/Borrow/Index" asp-route-tab="active" class="@(Model.ActiveTab == "active" ? "active" : "")">Đang mượn (@Model.CountByTab("active"))</a>
+        <a asp-page="/Borrow/Index" asp-route-tab="history" class="@(Model.ActiveTab == "history" ? "active" : "")">Lịch sử (@Model.CountByTab("history"))</a>
+    </div>
+
+    @if (Model.FilteredRequests.Count == 0)
+    {
+        <p class="empty-state">Không có yêu cầu trong tab này.</p>
+    }
+    else
+    {
+        foreach (var r in Model.FilteredRequests)
+        {
+            <div class="request-card">
+                <div class="request-card-head">
+                    <div><strong>#@r.Id</strong> @Html.Raw(DisplayHelper.StatusBadge(r.Status, "borrow"))</div>
+                    <a class="btn btn-neutral btn-sm" asp-page="/Borrow/Index" asp-route-tab="@Model.ActiveTab" asp-route-detailId="@r.Id">Chi tiết</a>
+                </div>
+                @if (Model.IsStaff)
+                {
+                    <div class="request-meta"><i class="fa-solid fa-user"></i> @r.UserName</div>
+                }
+                <div class="request-meta">Mượn: @DisplayHelper.FormatDate(r.BorrowDate) · Trả: @DisplayHelper.FormatDate(r.ExpectedReturnDate)</div>
+                <div class="request-meta">@r.Purpose</div>
+                <ul class="item-list">
+                    @foreach (var item in r.Items)
+                    {
+                        <li><strong>@item.EquipmentName</strong> · @item.SerialNumber</li>
+                    }
+                </ul>
+                <div class="request-card-actions">
+                    @if (!Model.IsStaff && (r.Status is "Pending" or "Approved"))
+                    {
+                        <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Hủy yêu cầu #@r.Id?');">
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <input type="hidden" name="tab" value="@Model.ActiveTab" />
+                            <button type="submit" class="btn btn-danger btn-sm">Hủy yêu cầu</button>
+                        </form>
+                    }
+                    @if (Model.IsStaff && r.Status == "Pending")
+                    {
+                        <form method="post" asp-page-handler="Approve">
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <input type="hidden" name="tab" value="@Model.ActiveTab" />
+                            <button type="submit" class="btn btn-success btn-sm">Duyệt</button>
+                        </form>
+                        <form method="post" asp-page-handler="Reject">
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <input type="hidden" name="tab" value="@Model.ActiveTab" />
+                            <input type="text" name="rejectReason" placeholder="Lý do từ chối" required class="form-group" style="max-width:220px;" />
+                            <button type="submit" class="btn btn-danger btn-sm">Từ chối</button>
+                        </form>
+                    }
+                    @if (Model.IsStaff && r.Status == "Approved")
+                    {
+                        <a class="btn btn-primary btn-sm" asp-page="/Borrow/Index" asp-route-tab="@Model.ActiveTab" asp-route-detailId="@r.Id" asp-route-action="handover">Bàn giao</a>
+                    }
+                    @if (Model.IsStaff && r.Status is "InProgress" or "Overdue")
+                    {
+                        <a class="btn btn-primary btn-sm" asp-page="/Borrow/Index" asp-route-tab="@Model.ActiveTab" asp-route-detailId="@r.Id" asp-route-action="return">Xác nhận trả</a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (Model.DetailRequest is not null)
+{
+    <div class="modal-overlay open">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Chi tiết #@Model.DetailRequest.Id</h2>
+                <a class="btn btn-neutral btn-sm" asp-page="/Borrow/Index" asp-route-tab="@Model.ActiveTab">&times;</a>
+            </div>
+            <div class="modal-body">
+                @if (Model.ActionMode == "handover")
+                {
+                    <form method="post" asp-page-handler="Handover">
+                        <input type="hidden" name="id" value="@Model.DetailRequest.Id" />
+                        <input type="hidden" name="tab" value="@Model.ActiveTab" />
+                        <div class="section-title" style="margin-top:0;">Bàn giao thiết bị</div>
+                        @foreach (var item in Model.DetailRequest.Items)
+                        {
+                            <div class="form-group">
+                                <label>@item.EquipmentName · @item.SerialNumber</label>
+                                <input type="text" name="notes[@item.EquipmentId]" placeholder="Ghi chú (tùy chọn)" />
+                            </div>
+                        }
+                        <button type="submit" class="btn btn-primary">Xác nhận bàn giao</button>
+                    </form>
+                }
+                else if (Model.ActionMode == "return")
+                {
+                    <form method="post" asp-page-handler="Return">
+                        <input type="hidden" name="id" value="@Model.DetailRequest.Id" />
+                        <input type="hidden" name="tab" value="@Model.ActiveTab" />
+                        <div class="section-title" style="margin-top:0;">Ghi nhận trả thiết bị</div>
+                        <div class="form-group">
+                            <label>Ghi chú staff</label>
+                            <input type="text" name="staffNote" />
+                        </div>
+                        @foreach (var item in Model.DetailRequest.Items)
+                        {
+                            <div class="form-group">
+                                <label>@item.EquipmentName</label>
+                                <input type="text" name="notes[@item.EquipmentId]" placeholder="Ghi chú (tùy chọn)" />
+                            </div>
+                        }
+                        <button type="submit" class="btn btn-primary">Xác nhận trả</button>
+                    </form>
+                }
+                else
+                {
+                    <div class="detail-grid">
+                        <div><div class="label">Người mượn</div>@Model.DetailRequest.UserName</div>
+                        <div><div class="label">Trạng thái</div>@Html.Raw(DisplayHelper.StatusBadge(Model.DetailRequest.Status, "borrow"))</div>
+                        <div><div class="label">Ngày mượn</div>@DisplayHelper.FormatDate(Model.DetailRequest.BorrowDate)</div>
+                        <div><div class="label">Trả dự kiến</div>@DisplayHelper.FormatDate(Model.DetailRequest.ExpectedReturnDate)</div>
+                        <div class="full"><div class="label">Mục đích</div>@Model.DetailRequest.Purpose</div>
+                        @if (!string.IsNullOrWhiteSpace(Model.DetailRequest.RejectReason))
+                        {
+                            <div class="full"><div class="label">Lý do từ chối</div>@Model.DetailRequest.RejectReason</div>
+                        }
+                    </div>
+                    <ul class="item-list">
+                        @foreach (var item in Model.DetailRequest.Items)
+                        {
+                            <li><strong>@item.EquipmentName</strong> · @item.SerialNumber</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}

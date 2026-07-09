@@ -1,0 +1,54 @@
+@page
+@model EquipmentBorrowingManagementSystem.Web.Pages.Account.RegisterModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Đăng ký";
+}
+
+<div class="auth-shell">
+    <aside class="auth-brand">
+        <div class="logo-mark"><i class="fa-solid fa-toolbox"></i></div>
+        <h2>Equipment Borrowing Management</h2>
+        <p>Tạo tài khoản người dùng để mượn thiết bị.</p>
+    </aside>
+    <main class="auth-main">
+        <div class="auth-topbar">
+            <a asp-page="/Account/Login">Đăng nhập</a>
+            <a asp-page="/Account/Register" class="active">Đăng ký</a>
+        </div>
+        <div class="auth-content">
+            <div class="card card-accent auth-card">
+                <div class="page-header">
+                    <div>
+                        <h1>Đăng ký</h1>
+                        <p class="subtitle">Tạo tài khoản User mới.</p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                {
+                    <div class="alert alert-error">@Model.ErrorMessage</div>
+                }
+
+                <form method="post">
+                    <div class="form-group">
+                        <label asp-for="Input.FullName">Họ tên</label>
+                        <input asp-for="Input.FullName" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Input.Email">Email</label>
+                        <input asp-for="Input.Email" type="email" autocomplete="username" />
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Input.Password">Mật khẩu</label>
+                        <input asp-for="Input.Password" type="password" autocomplete="new-password" />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
+                </form>
+                <div class="form-footer">
+                    Đã có tài khoản? <a asp-page="/Account/Login">Đăng nhập</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>

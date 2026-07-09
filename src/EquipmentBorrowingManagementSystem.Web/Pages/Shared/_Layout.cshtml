@@ -1,0 +1,62 @@
+﻿@{
+    var auth = HttpContextAccessor.HttpContext?.Session.GetAuthSession();
+    var activePage = ViewData["ActivePage"] as string ?? "";
+    var pageTitle = ViewData["Title"] as string ?? "EBMS";
+    var displayName = auth?.FullName?.Split(' ').FirstOrDefault() ?? "User";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@pageTitle — EBMS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="@(ViewData["BodyClass"])">
+@if (auth is not null)
+{
+    <header class="site-header">
+        <div class="brand">
+            <a asp-page="/Categories/Index"><i class="fa-solid fa-toolbox"></i><span>EBMS</span></a>
+        </div>
+        <nav>
+            <a asp-page="/Categories/Index" class="@(activePage == "categories" ? "active" : "")">Categories</a>
+            <a asp-page="/Equipment/Index" class="@(activePage == "equipment" ? "active" : "")">Equipments</a>
+            <a asp-page="/Borrow/Index" class="@(activePage == "borrow" ? "active" : "")">
+                @(auth.IsStaffOrAdmin ? "Duyệt mượn" : "Yêu cầu mượn")
+            </a>
+            @if (auth.IsStaffOrAdmin)
+            {
+                <a asp-page="/Reports/Index" class="nav-staff @(activePage == "reports" ? "active" : "")"><i class="fa-solid fa-chart-pie"></i> Báo cáo</a>
+                <a asp-page="/Manage/Index" class="nav-staff @(activePage == "manage" ? "active" : "")"><i class="fa-solid fa-pen-to-square"></i> Quản lý</a>
+                <a asp-page="/ODataExplorer/Index" class="nav-staff @(activePage == "odata" ? "active" : "")"><i class="fa-solid fa-database"></i> OData</a>
+                <a asp-page="/GrpcTools/Index" class="nav-staff @(activePage == "grpc" ? "active" : "")"><i class="fa-solid fa-bolt"></i> gRPC</a>
+            }
+            @if (auth.IsAdmin)
+            {
+                <a asp-page="/Users/Index" class="nav-staff @(activePage == "users" ? "active" : "")"><i class="fa-solid fa-users"></i> Users</a>
+            }
+            <a asp-page="/Notifications/Index" class="nav-bell @(activePage == "notifications" ? "active" : "")" title="Thông báo">
+                <i class="fa-regular fa-bell"></i>
+            </a>
+            <div class="nav-user-menu" id="navUserMenu">
+                <button type="button" class="nav-user-btn" id="navUserBtn">
+                    <i class="fa-solid fa-user"></i> @displayName <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="nav-user-dropdown">
+                    <form method="post" asp-page="/Account/Logout">
+                        <button type="submit"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+    </header>
+}
+
+@RenderBody()
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

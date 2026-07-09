@@ -1,0 +1,217 @@
+@page
+@using EquipmentBorrowingManagementSystem.Web.Helpers
+@model EquipmentBorrowingManagementSystem.Web.Pages.Manage.IndexModel
+@{
+    ViewData["Title"] = "Quản lý";
+    ViewData["ActivePage"] = "manage";
+}
+
+<div class="page-wrap manage-page">
+    <div class="page-header">
+        <div>
+            <h1>Quản lý thiết bị &amp; danh mục</h1>
+            <p class="subtitle">Staff/Admin — CRUD thiết bị và danh mục.</p>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-error">@error</div>
+    }
+
+    <div class="tab-bar">
+        <a asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" class="@(Model.ActiveTab == "equipment" ? "active" : "")">Thiết bị</a>
+        <a asp-page="/Manage/Index" asp-route-tab="categories" class="@(Model.ActiveTab == "categories" ? "active" : "")">Danh mục</a>
+    </div>
+
+    @if (Model.ActiveTab == "equipment")
+    {
+        <div class="toolbar-row">
+            <form method="get" class="toolbar-row" style="margin-bottom:0;">
+                <input type="hidden" name="tab" value="equipment" />
+                <div class="form-group">
+                    <label>Lọc trạng thái</label>
+                    <select name="status" onchange="this.form.submit()">
+                        <option value="">Tất cả</option>
+                        @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Lost", "Compensated", "Retired" })
+                        {
+                            <option value="@status" selected="@(Model.StatusFilter == status)">@status</option>
+                        }
+                    </select>
+                </div>
+            </form>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('equipmentModal').classList.add('open')">Thêm thiết bị</button>
+        </div>
+
+        @if (Model.EquipmentPage?.Items.Count > 0)
+        {
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Tên</th><th>Serial</th><th>Danh mục</th><th>Trạng thái</th><th>Vị trí</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var eq in Model.EquipmentPage.Items)
+                        {
+                            <tr>
+                                <td>@eq.Name</td>
+                                <td>@eq.SerialNumber</td>
+                                <td>@eq.CategoryName</td>
+                                <td>@Html.Raw(DisplayHelper.StatusBadge(eq.Status, "equipment"))</td>
+                                <td>@(eq.Location ?? "—")</td>
+                                <td class="table-actions">
+                                    @if (eq.Status == "Maintenance")
+                                    {
+                                        <form method="post" asp-page-handler="CompleteMaintenance" style="display:inline;">
+                                            <input type="hidden" name="id" value="@eq.Id" />
+                                            <input type="hidden" name="tab" value="equipment" />
+                                            <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                            <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                                            <button type="submit" class="btn btn-success btn-sm">Hoàn tất BT</button>
+                                        </form>
+                                    }
+                                    @if (eq.Status == "Lost")
+                                    {
+                                        <form method="post" asp-page-handler="Compensate" style="display:inline;" onsubmit="return confirm('Xác nhận đã đền bù?');">
+                                            <input type="hidden" name="id" value="@eq.Id" />
+                                            <input type="hidden" name="tab" value="equipment" />
+                                            <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                            <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                                            <button type="submit" class="btn btn-danger btn-sm">Đã đền bù</button>
+                                        </form>
+                                    }
+                                    @if (eq.Status is not ("Lost" or "Compensated" or "Borrowed" or "Reserved"))
+                                    {
+                                        <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-editEquipmentId="@eq.Id" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@Model.PageNumber">Sửa</a>
+                                        <form method="post" asp-page-handler="DeleteEquipment" style="display:inline;" onsubmit="return confirm('Xóa thiết bị này?');">
+                                            <input type="hidden" name="id" value="@eq.Id" />
+                                            <input type="hidden" name="tab" value="equipment" />
+                                            <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                            <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                                            <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-pager">
+                <a class="btn btn-neutral btn-sm @(Model.EquipmentPage.HasPrevious ? "" : "disabled")" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@(Model.PageNumber - 1)">Trước</a>
+                <span>Trang @Model.EquipmentPage.PageNumber / @Model.EquipmentPage.TotalPages</span>
+                <a class="btn btn-neutral btn-sm @(Model.EquipmentPage.HasNext ? "" : "disabled")" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@(Model.PageNumber + 1)">Sau</a>
+            </div>
+        }
+        else
+        {
+            <p class="empty-state">Chưa có thiết bị.</p>
+        }
+    }
+    else
+    {
+        <div class="toolbar-row">
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('categoryModal').classList.add('open')">Thêm danh mục</button>
+        </div>
+
+        @if (Model.Categories.Count > 0)
+        {
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Tên</th><th>Mô tả</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <tr>
+                                <td>@cat.Name</td>
+                                <td>@(cat.Description ?? "—")</td>
+                                <td class="table-actions">
+                                    <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="categories" asp-route-editCategoryId="@cat.Id">Sửa</a>
+                                    <form method="post" asp-page-handler="DeleteCategory" style="display:inline;" onsubmit="return confirm('Xóa danh mục này?');">
+                                        <input type="hidden" name="id" value="@cat.Id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="empty-state">Chưa có danh mục.</p>
+        }
+    }
+</div>
+
+<div class="modal-overlay @(Model.ShowEquipmentModal ? "open" : "")" id="equipmentModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>@(Model.EditEquipment is null ? "Thêm thiết bị" : "Sửa thiết bị")</h2>
+            <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@Model.PageNumber">&times;</a>
+        </div>
+        <form method="post" asp-page-handler="SaveEquipment">
+            <div class="modal-body">
+                <input type="hidden" name="id" value="@Model.EditEquipment?.Id" />
+                <input type="hidden" name="tab" value="equipment" />
+                <input type="hidden" name="status" value="@Model.StatusFilter" />
+                <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                <div class="form-group"><label>Tên</label><input name="name" value="@Model.EditEquipment?.Name" required /></div>
+                <div class="form-group"><label>Serial</label><input name="serialNumber" value="@Model.EditEquipment?.SerialNumber" required /></div>
+                <div class="form-group">
+                    <label>Danh mục</label>
+                    <select name="categoryId" required>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <option value="@cat.Id" selected="@(Model.EditEquipment?.CategoryId == cat.Id)">@cat.Name</option>
+                        }
+                    </select>
+                </div>
+                @if (Model.EditEquipment is not null)
+                {
+                    <div class="form-group">
+                        <label>Trạng thái</label>
+                        <select name="statusValue">
+                            @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Retired", "Lost", "Compensated" })
+                            {
+                                <option value="@status" selected="@(Model.EditEquipment.Status == status)">@status</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="form-group"><label>Vị trí</label><input name="location" value="@Model.EditEquipment?.Location" /></div>
+                <div class="form-group"><label>Mô tả</label><textarea name="description" rows="3">@Model.EditEquipment?.Description</textarea></div>
+                <div class="form-group"><label>Image URL</label><input name="imageUrl" value="@Model.EditEquipment?.ImageUrl" /></div>
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-neutral" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@Model.PageNumber">Hủy</a>
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay @(Model.ShowCategoryModal ? "open" : "")" id="categoryModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>@(Model.EditCategory is null ? "Thêm danh mục" : "Sửa danh mục")</h2>
+            <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="categories">&times;</a>
+        </div>
+        <form method="post" asp-page-handler="SaveCategory">
+            <div class="modal-body">
+                <input type="hidden" name="id" value="@Model.EditCategory?.Id" />
+                <div class="form-group"><label>Tên</label><input name="name" value="@Model.EditCategory?.Name" required /></div>
+                <div class="form-group"><label>Mô tả</label><textarea name="description" rows="3">@Model.EditCategory?.Description</textarea></div>
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-neutral" asp-page="/Manage/Index" asp-route-tab="categories">Hủy</a>
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            </div>
+        </form>
+    </div>
+</div>
