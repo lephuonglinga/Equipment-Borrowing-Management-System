@@ -2,6 +2,7 @@ using AutoMapper;
 using EquipmentBorrowingManagementSystem.Application.DTOs.Borrowing;
 using EquipmentBorrowingManagementSystem.Application.DTOs.Categories;
 using EquipmentBorrowingManagementSystem.Application.DTOs.Equipment;
+using EquipmentBorrowingManagementSystem.Application.DTOs.OData;
 using EquipmentBorrowingManagementSystem.Application.DTOs.Users;
 using EquipmentBorrowingManagementSystem.Domain.Entities;
 
@@ -35,5 +36,20 @@ public class MappingProfile : Profile
 
         CreateMap<User, UserDto>()
             .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()));
+
+        CreateMap<EquipmentCategory, EquipmentCategoryODataDto>();
+        CreateMap<Equipment, EquipmentODataDto>();
+
+        CreateMap<BorrowRequestItem, BorrowRequestItemODataDto>()
+            .ForMember(dest => dest.EquipmentName,
+                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.Name : string.Empty))
+            .ForMember(dest => dest.SerialNumber,
+                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty));
+
+        CreateMap<BorrowRequest, BorrowRequestODataDto>()
+            .ForMember(dest => dest.UserName,
+                opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty))
+            .ForMember(dest => dest.ApprovedByName,
+                opt => opt.MapFrom(src => src.ApprovedBy != null ? src.ApprovedBy.FullName : null));
     }
 }

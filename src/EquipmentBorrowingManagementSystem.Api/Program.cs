@@ -1,5 +1,6 @@
 using System.Text;
 using EquipmentBorrowingManagementSystem.Api.Middleware;
+using EquipmentBorrowingManagementSystem.Api.OData;
 using EquipmentBorrowingManagementSystem.Application;
 using EquipmentBorrowingManagementSystem.Infrastructure;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
@@ -38,7 +39,8 @@ builder.Services.AddControllers(options =>
         .OrderBy()
         .Expand()
         .Count()
-        .SetMaxTop(100));
+        .SetMaxTop(100)
+        .AddRouteComponents("odata", ODataEdmModelBuilder.GetEdmModel()));
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
