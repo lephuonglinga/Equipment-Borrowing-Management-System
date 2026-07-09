@@ -17,7 +17,7 @@ All REST/OData calls are made **server-side** from Razor Page models via `EbmsAp
 | `/Reports` | Dashboard & summaries (Staff/Admin) | `GET /api/reports/dashboard`, `GET /api/reports/overdue-requests`, `GET /api/reports/borrow-summary` |
 | `/Users` | User list & create Staff (Admin) | `GET /api/users`, `POST /api/users`, `PATCH /api/users/{id}` |
 | `/Users/{id}` | User detail & activate/deactivate (Admin) | `GET /api/users/{id}`, `PATCH /api/users/{id}` |
-| `/Notifications` | Placeholder (no REST API yet) | — |
+| `/Notifications` | Notification inbox (list + mark read) | `GET /api/notifications`, `PATCH /api/notifications/{id}/read` |
 | `/ODataExplorer` | OData query tester (Staff/Admin) | `GET /odata/Equipment`, `GET /odata/BorrowRequests` |
 | `/GrpcTools` | gRPC notification sender (Staff/Admin) | gRPC `EmailNotificationService.Send` |
 
