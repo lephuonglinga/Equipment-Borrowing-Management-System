@@ -18,6 +18,7 @@ Cong nghe:
 - JWT + Refresh Token
 - Client HTML/CSS/jQuery (`client/`)
 - OData, JSON/XML content negotiation, audit log, soft delete
+- gRPC `EmailNotificationService` (project rieng, API goi khi approve/reject/return)
 
 ## 2. Trang thai he thong
 
@@ -130,3 +131,28 @@ Trang `client/manage.html` va `client/js/manage.js`:
 - Filter day du cac status, bao gom `Lost` va `Compensated`
 - Danh sach van hien thi day du cac status
 - Link tu dashboard sang trang quan ly dung query `?status=<Status>`
+
+## 8. gRPC NotificationService
+
+Project: `src/EquipmentBorrowingManagementSystem.Grpc`
+
+| Thanh phan | Mo ta |
+|---|---|
+| Proto | `EmailNotificationService.Send(NotificationRequest)` |
+| Server | Log simulate email ra console |
+| Client | `Infrastructure/Grpc/NotificationClient` |
+| Config | `GrpcNotification:Address` trong API `appsettings.json` |
+
+Chay gRPC service:
+
+```bash
+dotnet run --project src/EquipmentBorrowingManagementSystem.Grpc --launch-profile http
+```
+
+Chay API (terminal khac):
+
+```bash
+dotnet run --project src/EquipmentBorrowingManagementSystem.Api --launch-profile http
+```
+
+Khi Staff duyet/tu choi/ghi nhan tra don muon, API vua ghi `Notifications` in-app vua goi gRPC (non-blocking). Neu gRPC service khong chay, API van thanh cong va chi log warning.

@@ -18,7 +18,6 @@ public class AppDbContext : DbContext
     public DbSet<ReturnRecord> ReturnRecords => Set<ReturnRecord>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -21,7 +21,6 @@ public static class DependencyInjection
         services.AddScoped<IBorrowRequestService, BorrowRequestService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IReportService, ReportService>();
-        services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IUserService, UserService>();
 
         return services;

@@ -37,7 +37,18 @@
   - Query filter dung `status=<value>`
   - Bang list hien thi theo moi status nhan tu API.
 
-## 5. Next check
+## 5. Slice 9 - gRPC NotificationService (DONE)
+
+- Project moi: `src/EquipmentBorrowingManagementSystem.Grpc`
+  - Proto: `Protos/notification.proto` (`EmailNotificationService.Send`)
+  - Service: `Services/NotificationGrpcService.cs` (simulate email, log ra console)
+  - Chay: `dotnet run --project src/EquipmentBorrowingManagementSystem.Grpc --launch-profile http` -> `http://localhost:5272`
+- API client: `Infrastructure/Grpc/NotificationClient.cs` implements `INotificationClient`
+- `NotificationService.NotifyAsync`: ghi in-app DB + goi gRPC **non-blocking** (loi gRPC chi log warning, API van thanh cong)
+- Config API: `appsettings.json` -> `GrpcNotification:Address` (mac dinh `http://localhost:5272`)
+- Workflow trigger: approve / reject / return / auto-cancel (qua `BorrowRequestService` -> `NotifyAsync`)
+
+## 6. Next check
 
 - Chay migration len DB va smoke test nhanh:
   - `GET /api/equipment?status=Lost`

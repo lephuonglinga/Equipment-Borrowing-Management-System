@@ -1,6 +1,5 @@
 using System.Text;
 using EquipmentBorrowingManagementSystem.Api.Middleware;
-using EquipmentBorrowingManagementSystem.Api.OData;
 using EquipmentBorrowingManagementSystem.Application;
 using EquipmentBorrowingManagementSystem.Infrastructure;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
@@ -12,12 +11,8 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Host.UseSerilog((context, configuration) =>
-    configuration.MinimumLevel.Information().WriteTo.Console());
 
 builder.Services.AddControllers(options =>
 {
@@ -43,8 +38,7 @@ builder.Services.AddControllers(options =>
         .OrderBy()
         .Expand()
         .Count()
-        .SetMaxTop(100)
-        .AddRouteComponents("odata", EdmModelBuilder.GetEdmModel()));
+        .SetMaxTop(100));
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

@@ -1,11 +1,13 @@
 using EquipmentBorrowingManagementSystem.Application.Interfaces;
+using EquipmentBorrowingManagementSystem.Application.Interfaces.Notifications;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
-using EquipmentBorrowingManagementSystem.Infrastructure.Audit;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
+using EquipmentBorrowingManagementSystem.Infrastructure.Grpc;
 using EquipmentBorrowingManagementSystem.Infrastructure.HostedServices;
 using EquipmentBorrowingManagementSystem.Infrastructure.Repositories;
 using EquipmentBorrowingManagementSystem.Infrastructure.Security;
+using EquipmentBorrowingManagementSystem.Grpc.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,11 +21,8 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-        services.AddScoped<AuditSaveChangesInterceptor>();
-
-        services.AddDbContext<AppDbContext>((sp, options) =>
-            options.UseSqlServer(connectionString)
-                .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlServer(connectionString));
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IEquipmentRepository, EquipmentRepository>();
@@ -33,7 +32,6 @@ public static class DependencyInjection
         services.AddScoped<IBorrowRequestRepository, BorrowRequestRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
-        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
@@ -42,8 +40,27 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ICurrentUser, CurrentUser>();
 
+        services.Configure<GrpcNotificationSettings>(configuration.GetSection(GrpcNotificationSettings.SectionName));
+        RegisterGrpcNotificationClient(services, configuration);
+
         services.AddHostedService<BorrowRequestExpirationHostedService>();
 
         return services;
+    }
+
+    private static void RegisterGrpcNotificationClient(IServiceCollection services, IConfiguration configuration)
+    {
+        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
+        var grpcAddress = configuration
+            .GetSection(GrpcNotificationSettings.SectionName)
+            .Get<GrpcNotificationSettings>()?.Address ?? "http://localhost:5272";
+
+        services.AddGrpcClient<EmailNotificationService.EmailNotificationServiceClient>(options =>
+        {
+            options.Address = new Uri(grpcAddress);
+        });
+
+        services.AddScoped<INotificationClient, NotificationClient>();
     }
 }
