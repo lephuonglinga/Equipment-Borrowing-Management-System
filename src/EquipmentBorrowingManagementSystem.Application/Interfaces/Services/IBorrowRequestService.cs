@@ -9,5 +9,5 @@ public interface IBorrowRequestService
     Task<Result<BorrowRequestDto>> GetByIdAsync(int id);
     Task<Result<BorrowRequestDto>> CreateAsync(CreateBorrowRequestDto dto);
     Task<Result<BorrowRequestDto>> UpdateAsync(int id, UpdateBorrowRequestDto dto);
-    Task ProcessExpiredApprovalsAsync();
+    Task ProcessOverdueTransitionsAsync();
 }

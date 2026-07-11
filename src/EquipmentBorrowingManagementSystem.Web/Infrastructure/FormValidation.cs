@@ -2,6 +2,9 @@ namespace EquipmentBorrowingManagementSystem.Web.Infrastructure;
 
 public static class FormValidation
 {
+    public const string UserHasOverdueMessage =
+        "Bạn đang có yêu cầu mượn quá hạn, không thể tạo yêu cầu mới.";
+
     public static string? RequireText(string? value, string fieldLabel) =>
         string.IsNullOrWhiteSpace(value) ? $"{fieldLabel} là bắt buộc." : null;
 

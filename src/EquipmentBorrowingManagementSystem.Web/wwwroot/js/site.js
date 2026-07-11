@@ -30,6 +30,15 @@ document.addEventListener("DOMContentLoaded", function () {
         showEbmsToast(window.__ebmsToast.message, window.__ebmsToast.type);
     }
 
+    document.querySelectorAll("form.js-overdue-block").forEach(function (form) {
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var message = form.getAttribute("data-overdue-message")
+                || "Bạn đang có yêu cầu mượn quá hạn, không thể tạo yêu cầu mới.";
+            showEbmsToast(message, "error");
+        });
+    });
+
     var menu = document.getElementById("navUserMenu");
     var btn = document.getElementById("navUserBtn");
     if (menu && btn) {
@@ -58,6 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
     var openModal = document.getElementById("openBorrowModal");
     if (openModal) {
         openModal.addEventListener("click", function () {
+            if (openModal.getAttribute("data-has-overdue") === "true") {
+                var overdueMsg = openModal.getAttribute("data-overdue-message")
+                    || "Bạn đang có yêu cầu mượn quá hạn, không thể tạo yêu cầu mới.";
+                showEbmsToast(overdueMsg, "error");
+                return;
+            }
+
             var modal = document.getElementById("confirmBorrowModal");
             if (modal) modal.classList.add("open");
         });

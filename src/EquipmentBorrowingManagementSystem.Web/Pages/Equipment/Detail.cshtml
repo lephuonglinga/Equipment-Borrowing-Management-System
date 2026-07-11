@@ -1,5 +1,6 @@
 @page "{id:int}"
 @using EquipmentBorrowingManagementSystem.Web.Helpers
+@using EquipmentBorrowingManagementSystem.Web.Infrastructure
 @model EquipmentBorrowingManagementSystem.Web.Pages.Equipment.DetailModel
 @{
     ViewData["Title"] = Model.Equipment?.Name ?? "Chi tiết thiết bị";
@@ -16,7 +17,12 @@
     {
         <div class="alert alert-error">@Model.ErrorMessage</div>
     }
-    else if (Model.Equipment is not null)
+    else if (Model.HasOverdueBorrow)
+    {
+        <div class="alert alert-error">@FormValidation.UserHasOverdueMessage</div>
+    }
+
+    @if (Model.Equipment is not null)
     {
         <div class="equipment-detail">
             <div class="equipment-detail-image">
@@ -34,14 +40,21 @@
                     <div class="full"><div class="label">Mô tả</div>@(Model.Equipment.Description ?? "—")</div>
                 </div>
                 <div class="detail-actions">
-                    @if (DisplayHelper.IsBorrowable(Model.Equipment.Status))
+                    @if (Model.CanBorrow && DisplayHelper.IsBorrowable(Model.Equipment.Status))
                     {
-                        <form method="post" asp-page-handler="ToggleCart">
+                        <form method="post"
+                              asp-page-handler="ToggleCart"
+                              class="@(Model.HasOverdueBorrow && !Model.InCart ? "js-overdue-block" : null)"
+                              data-overdue-message="@FormValidation.UserHasOverdueMessage">
                             <input type="hidden" name="categoryId" value="@Model.CategoryId" />
                             <button type="submit" class="btn @(Model.InCart ? "btn-danger" : "btn-success")">
                                 @(Model.InCart ? "Hủy chọn mượn" : "Mượn")
                             </button>
                         </form>
+                    }
+                    else if (!Model.CanBorrow)
+                    {
+                        <p class="detail-note">Chỉ tài khoản User mới được đăng ký mượn thiết bị.</p>
                     }
                     else
                     {

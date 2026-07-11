@@ -1,8 +1,27 @@
-﻿@{
+﻿@using EquipmentBorrowingManagementSystem.Web.Services
+@inject EbmsApiClient Api
+@{
+    // Capture toast messages first so later work cannot lose TempData.
+    var toastSuccess = TempData["SuccessMessage"] as string;
+    var toastError = TempData["ErrorMessage"] as string;
+
     var auth = HttpContextAccessor.HttpContext?.Session.GetAuthSession();
     var activePage = ViewData["ActivePage"] as string ?? "";
     var pageTitle = ViewData["Title"] as string ?? "EBMS";
     var displayName = auth?.FullName?.Split(' ').FirstOrDefault() ?? "User";
+    var unreadNotificationCount = 0;
+    if (auth is not null)
+    {
+        try
+        {
+            var notifications = await Api.GetAsync<List<NotificationDto>>("api/notifications");
+            unreadNotificationCount = notifications?.Count(n => !n.IsRead) ?? 0;
+        }
+        catch
+        {
+            // Bell badge is best-effort; ignore failures so the layout still renders.
+        }
+    }
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -23,9 +42,12 @@
         <nav>
             <a asp-page="/Categories/Index" class="@(activePage == "categories" ? "active" : "")">Categories</a>
             <a asp-page="/Equipment/Index" class="@(activePage == "equipment" ? "active" : "")">Equipments</a>
-            <a asp-page="/Borrow/Index" class="@(activePage == "borrow" ? "active" : "")">
-                @(auth.IsStaffOrAdmin ? "Duyệt mượn" : "Yêu cầu mượn")
-            </a>
+            @if (!auth.IsAdmin)
+            {
+                <a asp-page="/Borrow/Index" class="@(activePage == "borrow" ? "active" : "")">
+                    @(auth.Role == "Staff" ? "Duyệt mượn" : "Yêu cầu mượn")
+                </a>
+            }
             @if (auth.IsStaffOrAdmin)
             {
                 <a asp-page="/Reports/Index" class="nav-staff @(activePage == "reports" ? "active" : "")"><i class="fa-solid fa-chart-pie"></i> Báo cáo</a>
@@ -39,6 +61,10 @@
             }
             <a asp-page="/Notifications/Index" class="nav-bell @(activePage == "notifications" ? "active" : "")" title="Thông báo">
                 <i class="fa-regular fa-bell"></i>
+                @if (unreadNotificationCount > 0)
+                {
+                    <span class="nav-bell-badge">@(unreadNotificationCount > 99 ? "99+" : unreadNotificationCount.ToString())</span>
+                }
             </a>
             <div class="nav-user-menu" id="navUserMenu">
                 <button type="button" class="nav-user-btn" id="navUserBtn">
@@ -57,11 +83,11 @@
 @RenderBody()
 
 <div id="ebmsToastHost" class="ebms-toast-host" aria-live="polite"></div>
-@if (TempData["SuccessMessage"] is string toastSuccess)
+@if (!string.IsNullOrWhiteSpace(toastSuccess))
 {
     <script>window.__ebmsToast = { type: "success", message: @System.Text.Json.JsonSerializer.Serialize(toastSuccess) };</script>
 }
-else if (TempData["ErrorMessage"] is string toastError)
+else if (!string.IsNullOrWhiteSpace(toastError))
 {
     <script>window.__ebmsToast = { type: "error", message: @System.Text.Json.JsonSerializer.Serialize(toastError) };</script>
 }

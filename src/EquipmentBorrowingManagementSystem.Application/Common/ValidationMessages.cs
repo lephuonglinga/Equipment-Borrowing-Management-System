@@ -18,7 +18,8 @@ public static class ValidationMessages
     public const string AtLeastOneEquipment = "Phải chọn ít nhất một thiết bị.";
     public const string DuplicateEquipmentInRequest = "Không được chọn trùng thiết bị trong cùng một yêu cầu.";
     public const string EquipmentIdInvalid = "Mã thiết bị không hợp lệ.";
-    public const string QuantityInvalid = "Số lượng phải lớn hơn 0.";
+    public const string UserHasOverdue =
+        "Bạn đang có yêu cầu mượn quá hạn, không thể tạo yêu cầu mới.";
 
     public const string BorrowStatusInvalid =
         "Trạng thái phải là một trong: Approved, Rejected, Cancelled, InProgress, Completed.";

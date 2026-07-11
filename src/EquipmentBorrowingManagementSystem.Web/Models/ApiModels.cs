@@ -38,6 +38,7 @@ public class BorrowRequestItemDto
     public string SerialNumber { get; set; } = string.Empty;
     public string? HandoverNote { get; set; }
     public string? ReturnNote { get; set; }
+    public string? ReturnStatus { get; set; }
 }
 
 public class BorrowRequestDto
@@ -47,9 +48,11 @@ public class BorrowRequestDto
     public string UserName { get; set; } = string.Empty;
     public DateTime BorrowDate { get; set; }
     public DateTime ExpectedReturnDate { get; set; }
+    public DateTime? ActualReturnDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;
     public string? RejectReason { get; set; }
+    public string? StaffNote { get; set; }
     public List<BorrowRequestItemDto> Items { get; set; } = [];
 }
 
@@ -64,7 +67,6 @@ public class CreateBorrowRequestDto
 public class CreateBorrowRequestItemDto
 {
     public int EquipmentId { get; set; }
-    public int Quantity { get; set; } = 1;
 }
 
 public class UpdateBorrowRequestDto

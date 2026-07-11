@@ -99,8 +99,7 @@ public class ReportRepository : IReportRepository
             {
                 EquipmentId = i.EquipmentId,
                 EquipmentName = i.Equipment?.Name ?? string.Empty,
-                SerialNumber = i.Equipment?.SerialNumber ?? string.Empty,
-                Quantity = i.Quantity
+                SerialNumber = i.Equipment?.SerialNumber ?? string.Empty
             }).ToList()
         }).ToList();
     }
@@ -151,7 +150,7 @@ public class ReportRepository : IReportRepository
                 i.BorrowRequest.Status != BorrowRequestStatus.Rejected &&
                 i.BorrowRequest.Status != BorrowRequestStatus.Cancelled)
             .GroupBy(i => i.EquipmentId)
-            .Select(g => new { EquipmentId = g.Key, BorrowCount = g.Sum(i => i.Quantity) })
+            .Select(g => new { EquipmentId = g.Key, BorrowCount = g.Count() })
             .OrderByDescending(x => x.BorrowCount)
             .Take(5)
             .ToListAsync();

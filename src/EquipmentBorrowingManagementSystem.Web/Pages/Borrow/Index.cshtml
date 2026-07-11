@@ -43,7 +43,13 @@
                 {
                     <div class="request-meta"><i class="fa-solid fa-user"></i> @r.UserName</div>
                 }
-                <div class="request-meta">Mượn: @DisplayHelper.FormatDate(r.BorrowDate) · Trả: @DisplayHelper.FormatDate(r.ExpectedReturnDate)</div>
+                <div class="request-meta">
+                    Mượn: @DisplayHelper.FormatDate(r.BorrowDate) · Trả dự kiến: @DisplayHelper.FormatDate(r.ExpectedReturnDate)
+                    @if (r.ActualReturnDate.HasValue)
+                    {
+                        <text> · Trả thực tế: @DisplayHelper.FormatDate(r.ActualReturnDate.Value)</text>
+                    }
+                </div>
                 <div class="request-meta">@r.Purpose</div>
                 <ul class="item-list">
                     @foreach (var item in r.Items)
@@ -179,16 +185,38 @@
                         <div><div class="label">Trạng thái</div>@Html.Raw(DisplayHelper.StatusBadge(Model.DetailRequest.Status, "borrow"))</div>
                         <div><div class="label">Ngày mượn</div>@DisplayHelper.FormatDate(Model.DetailRequest.BorrowDate)</div>
                         <div><div class="label">Trả dự kiến</div>@DisplayHelper.FormatDate(Model.DetailRequest.ExpectedReturnDate)</div>
+                        @if (Model.DetailRequest.ActualReturnDate.HasValue)
+                        {
+                            <div><div class="label">Ngày trả thực tế</div>@DisplayHelper.FormatDate(Model.DetailRequest.ActualReturnDate.Value)</div>
+                        }
                         <div class="full"><div class="label">Mục đích</div>@Model.DetailRequest.Purpose</div>
                         @if (!string.IsNullOrWhiteSpace(Model.DetailRequest.RejectReason))
                         {
                             <div class="full"><div class="label">Lý do từ chối</div>@Model.DetailRequest.RejectReason</div>
                         }
+                        @if (!string.IsNullOrWhiteSpace(Model.DetailRequest.StaffNote))
+                        {
+                            <div class="full"><div class="label">Ghi chú của staff khi trả</div>@Model.DetailRequest.StaffNote</div>
+                        }
                     </div>
                     <ul class="item-list">
                         @foreach (var item in Model.DetailRequest.Items)
                         {
-                            <li><strong>@item.EquipmentName</strong> · @item.SerialNumber</li>
+                            <li>
+                                <div><strong>@item.EquipmentName</strong> · @item.SerialNumber</div>
+                                @if (!string.IsNullOrWhiteSpace(item.HandoverNote))
+                                {
+                                    <div class="item-note"><span class="label">Ghi chú bàn giao:</span> @item.HandoverNote</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.ReturnStatus))
+                                {
+                                    <div class="item-note"><span class="label">Trạng thái khi trả:</span> @Html.Raw(DisplayHelper.StatusBadge(item.ReturnStatus, "equipment"))</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.ReturnNote))
+                                {
+                                    <div class="item-note"><span class="label">Ghi chú khi trả:</span> @item.ReturnNote</div>
+                                }
+                            </li>
                         }
                     </ul>
                 }

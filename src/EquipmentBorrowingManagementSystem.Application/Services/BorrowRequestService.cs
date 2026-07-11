@@ -37,7 +37,9 @@ public class BorrowRequestService : IBorrowRequestService
             return Result<List<BorrowRequestDto>>.Fail("Phiên đăng nhập không hợp lệ.", StatusCodes.Status401Unauthorized);
         }
 
-        var requests = IsStaffOrAdmin(_currentUser.Role)
+        await ProcessOverdueTransitionsAsync();
+
+        var requests = IsStaff(_currentUser.Role)
             ? await _unitOfWork.BorrowRequests.GetAllWithDetailsAsync()
             : await _unitOfWork.BorrowRequests.GetAllWithDetailsAsync(_currentUser.UserId.Value);
 
@@ -46,6 +48,8 @@ public class BorrowRequestService : IBorrowRequestService
 
     public async Task<Result<BorrowRequestDto>> GetByIdAsync(int id)
     {
+        await ProcessOverdueTransitionsAsync();
+
         var request = await _unitOfWork.BorrowRequests.GetByIdWithDetailsAsync(id);
         if (request == null)
         {
@@ -67,6 +71,11 @@ public class BorrowRequestService : IBorrowRequestService
             return Result<BorrowRequestDto>.Fail("Phiên đăng nhập không hợp lệ.", StatusCodes.Status401Unauthorized);
         }
 
+        if (!IsUser(_currentUser.Role))
+        {
+            return Result<BorrowRequestDto>.Fail("Chỉ User mới được tạo yêu cầu mượn thiết bị.", StatusCodes.Status403Forbidden);
+        }
+
         if (dto.ExpectedReturnDate.Date < dto.BorrowDate.Date)
         {
             return Result<BorrowRequestDto>.Fail(
@@ -81,10 +90,12 @@ public class BorrowRequestService : IBorrowRequestService
 
         dto.Purpose = purpose;
 
+        await ProcessOverdueTransitionsAsync();
+
         if (await _unitOfWork.BorrowRequests.UserHasOverdueRequestAsync(_currentUser.UserId.Value))
         {
             return Result<BorrowRequestDto>.Fail(
-                "Bạn đang có yêu cầu mượn quá hạn, không thể tạo yêu cầu mới.",
+                ValidationMessages.UserHasOverdue,
                 StatusCodes.Status400BadRequest);
         }
 
@@ -126,8 +137,7 @@ public class BorrowRequestService : IBorrowRequestService
 
             items.Add(new BorrowRequestItem
             {
-                EquipmentId = itemDto.EquipmentId,
-                Quantity = itemDto.Quantity
+                EquipmentId = itemDto.EquipmentId
             });
         }
 
@@ -169,9 +179,9 @@ public class BorrowRequestService : IBorrowRequestService
 
     private async Task<Result<BorrowRequestDto>> ApproveAsync(int id)
     {
-        if (!IsStaffOrAdmin(_currentUser.Role))
+        if (!IsStaff(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được duyệt yêu cầu.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff mới được duyệt yêu cầu.", StatusCodes.Status403Forbidden);
         }
 
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
@@ -216,9 +226,9 @@ public class BorrowRequestService : IBorrowRequestService
 
     private async Task<Result<BorrowRequestDto>> HandoverAsync(int id, UpdateBorrowRequestDto dto)
     {
-        if (!IsStaffOrAdmin(_currentUser.Role))
+        if (!IsStaff(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được bàn giao thiết bị.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff mới được bàn giao thiết bị.", StatusCodes.Status403Forbidden);
         }
 
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
@@ -265,6 +275,13 @@ public class BorrowRequestService : IBorrowRequestService
 
         request.Status = BorrowRequestStatus.InProgress;
         _unitOfWork.BorrowRequests.Update(request);
+
+        await _notificationService.NotifyAsync(
+            request.UserId,
+            "Equipment handed over",
+            $"Your borrow request #{request.Id} equipment has been handed over. Please return by {request.ExpectedReturnDate:yyyy-MM-dd}.",
+            NotificationType.General);
+
         await _unitOfWork.SaveChangesAsync();
 
         var updated = await _unitOfWork.BorrowRequests.GetByIdWithDetailsAsync(id);
@@ -273,9 +290,9 @@ public class BorrowRequestService : IBorrowRequestService
 
     private async Task<Result<BorrowRequestDto>> RejectAsync(int id, string rejectReason)
     {
-        if (!IsStaffOrAdmin(_currentUser.Role))
+        if (!IsStaff(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được từ chối yêu cầu.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff mới được từ chối yêu cầu.", StatusCodes.Status403Forbidden);
         }
 
         if (InputNormalizer.Require(rejectReason, out var reason, ValidationMessages.RejectReasonRequired) is { } reasonError)
@@ -353,9 +370,9 @@ public class BorrowRequestService : IBorrowRequestService
 
     private async Task<Result<BorrowRequestDto>> ReturnAsync(int id, UpdateBorrowRequestDto dto)
     {
-        if (!IsStaffOrAdmin(_currentUser.Role))
+        if (!IsStaff(_currentUser.Role))
         {
-            return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được ghi nhận trả thiết bị.", StatusCodes.Status403Forbidden);
+            return Result<BorrowRequestDto>.Fail("Chỉ Staff mới được ghi nhận trả thiết bị.", StatusCodes.Status403Forbidden);
         }
 
         if (_currentUser.UserId == null)
@@ -394,11 +411,13 @@ public class BorrowRequestService : IBorrowRequestService
         {
             var (note, status) = returnMap[item.EquipmentId];
             item.ReturnNote = note;
+            item.ReturnStatus = status;
             item.Equipment.Status = status;
             _unitOfWork.Equipment.Update(item.Equipment);
         }
 
         request.Status = BorrowRequestStatus.Completed;
+        request.ActualReturnDate = DateTime.UtcNow;
         request.ReturnRecord = new ReturnRecord
         {
             ReturnedById = _currentUser.UserId.Value,
@@ -419,16 +438,32 @@ public class BorrowRequestService : IBorrowRequestService
         return Result<BorrowRequestDto>.Ok(_mapper.Map<BorrowRequestDto>(updated));
     }
 
-    public async Task ProcessExpiredApprovalsAsync()
+    public async Task ProcessOverdueTransitionsAsync()
     {
         var today = DateTime.UtcNow.Date;
-        var expired = await _unitOfWork.BorrowRequests.GetExpiredApprovedAsync(today);
-        if (expired.Count == 0)
+        var changed = false;
+
+        // Pending -> Rejected: BorrowDate passed without approval.
+        var expiredPending = await _unitOfWork.BorrowRequests.GetExpiredPendingAsync(today);
+        foreach (var request in expiredPending)
         {
-            return;
+            ReleaseReservedEquipment(request, _unitOfWork);
+            request.Status = BorrowRequestStatus.Rejected;
+            request.RejectReason = "Tự động từ chối vì đã quá ngày mượn mà chưa được duyệt.";
+            request.ApprovedAt = DateTime.UtcNow;
+            _unitOfWork.BorrowRequests.Update(request);
+
+            await _notificationService.NotifyAsync(
+                request.UserId,
+                "Borrow request auto-rejected",
+                $"Your borrow request #{request.Id} was automatically rejected because it was not approved by {request.BorrowDate:yyyy-MM-dd}.",
+                NotificationType.RequestRejected);
+            changed = true;
         }
 
-        foreach (var request in expired)
+        // Approved -> Cancelled: BorrowDate passed without handover.
+        var expiredApproved = await _unitOfWork.BorrowRequests.GetExpiredApprovedAsync(today);
+        foreach (var request in expiredApproved)
         {
             ReleaseReservedEquipment(request, _unitOfWork);
             request.Status = BorrowRequestStatus.Cancelled;
@@ -439,9 +474,28 @@ public class BorrowRequestService : IBorrowRequestService
                 "Borrow request auto-cancelled",
                 $"Your borrow request #{request.Id} was cancelled because equipment was not picked up by {request.BorrowDate:yyyy-MM-dd}.",
                 NotificationType.RequestRejected);
+            changed = true;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        // InProgress -> Overdue: ExpectedReturnDate passed without return.
+        var expiredInProgress = await _unitOfWork.BorrowRequests.GetExpiredInProgressAsync(today);
+        foreach (var request in expiredInProgress)
+        {
+            request.Status = BorrowRequestStatus.Overdue;
+            _unitOfWork.BorrowRequests.Update(request);
+
+            await _notificationService.NotifyAsync(
+                request.UserId,
+                "Borrow request overdue",
+                $"Your borrow request #{request.Id} is overdue. Expected return date was {request.ExpectedReturnDate:yyyy-MM-dd}.",
+                NotificationType.RequestOverdue);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 
     private static Dictionary<int, string?> ParseHandoverMap(
@@ -514,9 +568,10 @@ public class BorrowRequestService : IBorrowRequestService
             return false;
         }
 
-        return IsStaffOrAdmin(_currentUser.Role) || request.UserId == _currentUser.UserId.Value;
+        return IsStaff(_currentUser.Role) || request.UserId == _currentUser.UserId.Value;
     }
 
-    private static bool IsStaffOrAdmin(string? role) =>
-        role is Roles.Admin or Roles.Staff;
+    private static bool IsStaff(string? role) => role == Roles.Staff;
+
+    private static bool IsUser(string? role) => role == Roles.User;
 }

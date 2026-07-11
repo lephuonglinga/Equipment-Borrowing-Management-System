@@ -5,7 +5,6 @@ public class OverdueRequestItemDto
     public int EquipmentId { get; set; }
     public string EquipmentName { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;
-    public int Quantity { get; set; }
 }
 
 public class OverdueRequestDto

@@ -1,5 +1,6 @@
 @page
 @using EquipmentBorrowingManagementSystem.Web.Helpers
+@using EquipmentBorrowingManagementSystem.Web.Infrastructure
 @model EquipmentBorrowingManagementSystem.Web.Pages.Equipment.IndexModel
 @{
     ViewData["Title"] = "Equipments";
@@ -18,6 +19,10 @@
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+    else if (Model.HasOverdueBorrow)
+    {
+        <div class="alert alert-error">@FormValidation.UserHasOverdueMessage</div>
     }
 
     <form method="get" class="equipment-toolbar">
@@ -71,10 +76,13 @@
                         </a>
                         <div class="meta"><strong>@item.SerialNumber</strong> · @item.CategoryName</div>
                         <div class="meta"><i class="fa-solid fa-location-dot"></i> @(item.Location ?? "—")</div>
-                        @if (DisplayHelper.IsBorrowable(item.Status))
+                        @if (Model.CanBorrow && DisplayHelper.IsBorrowable(item.Status))
                         {
                             <div class="card-actions">
-                                <form method="post" asp-page-handler="ToggleCart">
+                                <form method="post"
+                                      asp-page-handler="ToggleCart"
+                                      class="@(Model.HasOverdueBorrow && !inCart ? "js-overdue-block" : null)"
+                                      data-overdue-message="@FormValidation.UserHasOverdueMessage">
                                     <input type="hidden" name="equipmentId" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="categoryId" value="@Model.CategoryId" />
@@ -123,7 +131,13 @@
     <div class="borrow-cart-bar">
         <div>Đã chọn <strong>@Model.Cart.Count</strong> thiết bị</div>
         <div class="borrow-cart-bar-actions">
-            <button type="button" class="btn btn-success" id="openBorrowModal">Đăng ký mượn</button>
+            <button type="button"
+                    class="btn btn-success"
+                    id="openBorrowModal"
+                    data-has-overdue="@(Model.HasOverdueBorrow ? "true" : "false")"
+                    data-overdue-message="@FormValidation.UserHasOverdueMessage">
+                Đăng ký mượn
+            </button>
             <form method="post" asp-page-handler="ClearCart" style="display:inline;">
                 <button type="submit" class="btn btn-neutral">Bỏ chọn</button>
             </form>

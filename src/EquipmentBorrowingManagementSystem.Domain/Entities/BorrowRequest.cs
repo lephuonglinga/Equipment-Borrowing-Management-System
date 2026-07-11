@@ -8,6 +8,7 @@ public class BorrowRequest : BaseEntity
     public DateTime RequestDate { get; set; } = DateTime.UtcNow;
     public DateTime BorrowDate { get; set; }
     public DateTime ExpectedReturnDate { get; set; }
+    public DateTime? ActualReturnDate { get; set; }
     public BorrowRequestStatus Status { get; set; } = BorrowRequestStatus.Pending;
     public string Purpose { get; set; } = string.Empty;
     public string? RejectReason { get; set; }

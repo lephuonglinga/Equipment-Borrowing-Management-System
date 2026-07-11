@@ -75,6 +75,40 @@ public abstract class EbmsPageModel : PageModel
         return RedirectToPage("/Categories/Index");
     }
 
+    /// <summary>Only the Staff role may approve/reject/handover/return borrow requests. Admin is excluded on purpose.</summary>
+    protected IActionResult? EnsureStaffOnly()
+    {
+        var authResult = EnsureAuthenticated();
+        if (authResult is not null)
+        {
+            return authResult;
+        }
+
+        if (CurrentAuth!.Role == "Staff")
+        {
+            return null;
+        }
+
+        return RedirectToPage("/Categories/Index");
+    }
+
+    /// <summary>Only the User role may borrow equipment. Staff/Admin are excluded on purpose.</summary>
+    protected IActionResult? EnsureUserOnly()
+    {
+        var authResult = EnsureAuthenticated();
+        if (authResult is not null)
+        {
+            return authResult;
+        }
+
+        if (CurrentAuth!.Role == "User")
+        {
+            return null;
+        }
+
+        return RedirectToPage("/Categories/Index");
+    }
+
     protected void SetPageMessage(string message, bool isError = false)
     {
         TempData[isError ? "ErrorMessage" : "SuccessMessage"] = message;

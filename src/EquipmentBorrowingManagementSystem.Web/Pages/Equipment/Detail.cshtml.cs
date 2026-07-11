@@ -19,7 +19,9 @@ public class DetailModel : EbmsPageModel
     public EquipmentDto? Equipment { get; set; }
     public int? CategoryId { get; set; }
     public bool InCart { get; set; }
-    public int CartCount => _cart.Count;
+    public bool CanBorrow => CurrentAuth?.Role == "User";
+    public bool HasOverdueBorrow { get; set; }
+    public int CartCount => CanBorrow ? _cart.Count : 0;
     public string? ErrorMessage { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int id, int? categoryId, CancellationToken cancellationToken)
@@ -30,13 +32,18 @@ public class DetailModel : EbmsPageModel
         }
 
         CategoryId = categoryId;
+        if (CanBorrow)
+        {
+            HasOverdueBorrow = await UserHasOverdueBorrowAsync(cancellationToken);
+        }
+
         await LoadEquipmentAsync(id, cancellationToken);
         return Page();
     }
 
     public async Task<IActionResult> OnPostToggleCartAsync(int id, int? categoryId, CancellationToken cancellationToken)
     {
-        if (EnsureAuthenticated() is IActionResult redirect)
+        if (EnsureUserOnly() is IActionResult redirect)
         {
             return redirect;
         }
@@ -55,6 +62,12 @@ public class DetailModel : EbmsPageModel
             }
             else if (Equipment.Status == "Available")
             {
+                if (await UserHasOverdueBorrowAsync(cancellationToken))
+                {
+                    SetPageMessage(FormValidation.UserHasOverdueMessage, isError: true);
+                    return RedirectToPage(new { id, categoryId });
+                }
+
                 _cart.Add(Equipment);
             }
         }
@@ -64,7 +77,7 @@ public class DetailModel : EbmsPageModel
 
     public IActionResult OnPostClearCart(int id, int? categoryId)
     {
-        if (EnsureAuthenticated() is IActionResult redirect)
+        if (EnsureUserOnly() is IActionResult redirect)
         {
             return redirect;
         }
@@ -78,11 +91,26 @@ public class DetailModel : EbmsPageModel
         try
         {
             Equipment = await _api.GetAsync<EquipmentDto>($"api/equipment/{id}", cancellationToken: cancellationToken);
-            InCart = _cart.Contains(id);
+            InCart = CanBorrow && _cart.Contains(id);
         }
         catch (ApiException ex)
         {
             ErrorMessage = GetApiErrorMessage(ex);
+        }
+    }
+
+    private async Task<bool> UserHasOverdueBorrowAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var requests = await _api.GetAsync<List<BorrowRequestDto>>(
+                "api/borrow-requests",
+                cancellationToken: cancellationToken) ?? [];
+            return requests.Any(r => r.Status == "Overdue");
+        }
+        catch (ApiException)
+        {
+            return false;
         }
     }
 }

@@ -1,56 +1,55 @@
-# PROJECT STATE - Equipment Borrowing Management System (P1 / PRN232)
+# PROJECT STATE — Equipment Borrowing Management System (P1 / PRN232)
 
-## 1. Current confirmed model
+## 1. Model hiện tại (đã chốt)
 
-- Workflow da chuyen sang **status-only** (da bo toan bo Condition o Domain/Application/Infrastructure/Client/Docs).
-- REST endpoint da refactor:
-  - `PATCH /api/borrow-requests/{id}` cho toan bo transition cua don muon
-  - `PATCH /api/users/{id}` cho bat/tat `isActive`
-  - `PUT /api/equipment/{id}` cho cap nhat thiet bi + status
-- Reserve-on-create da bat:
-  - Tao don (`Pending`) => thiet bi `Reserved` ngay
-  - Reject/Cancel/Auto-expire => `Reserved -> Available`
-  - Handover => `Reserved -> Borrowed`
-  - Return Completed => `Borrowed -> Available`
-- Trang thai thiet bi hien tai:
-  - `Available`, `Borrowed`, `Maintenance`, `Retired`, `Reserved`, `Lost`, `Compensated`
-- Tat ca status duoc hien thi trong list/filter (bao gom `Lost`, `Compensated`).
+- Workflow **status-only** (không còn Condition).
+- `EquipmentStatus`: Available, Borrowed, Maintenance, Retired, Reserved, **Damaged**  
+  (đã bỏ Lost / Compensated).
+- `BorrowRequestStatus`: Pending, Approved, Rejected, Cancelled, InProgress, Completed, Overdue.
+- Không còn `Quantity` trên `BorrowRequestItem`.
+- Có `BorrowRequest.ActualReturnDate` và `BorrowRequestItem.ReturnStatus` (snapshot lúc trả).
+- Phân quyền:
+  - **Chỉ User** tạo yêu cầu mượn
+  - **Chỉ Staff** duyệt / từ chối / bàn giao / nhận trả
+  - **Admin** quản lý thiết bị + Users; **không** trang Duyệt mượn; **không** mượn
+- Auto-transition theo ngày:
+  - Pending quá `BorrowDate` → Rejected
+  - Approved quá `BorrowDate` → Cancelled (+ release Reserved)
+  - InProgress quá `ExpectedReturnDate` → Overdue
+- User đang Overdue không được tạo đơn mới (API 400 + toast UI).
 
 ## 2. Migration / Snapshot
 
-- Da tao migration moi: `20260707100222_RemoveConditionWorkflow` de drop 4 cot legacy cua model cu.
-- Da tao migration: `20260707101932_RemoveBorrowRequestReturnedStatus` — xoa `BorrowRequestStatus.Returned`, renumber `Completed=6`, `Overdue=7`, migrate du lieu DB.
-- Snapshot `AppDbContextModelSnapshot.cs` da dong bo theo schema moi.
-- Da xoa migration cu lien quan Condition workflow de codebase sach.
+| Migration | Nội dung |
+|-----------|----------|
+| `RemoveConditionWorkflow` | Drop cột Condition legacy |
+| `RemoveBorrowRequestReturnedStatus` | Bỏ status Returned |
+| `RemoveAuditLog` | Xóa bảng AuditLogs |
+| **`RemoveQuantityAddReturnTracking`** | Drop `Quantity`; thêm `ActualReturnDate`, `ReturnStatus` |
+
+Snapshot `AppDbContextModelSnapshot.cs` đã đồng bộ.
 
 ## 3. Documentation / ERD
 
-- `docs/ERD.dbml` da bo toan bo cot Condition.
-- `docs/PROJECT_DOCUMENTATION.md` da cap nhat theo workflow status-only + state chart moi.
+- `docs/ERD.dbml` — schema hiện tại (không Quantity, có ActualReturnDate/ReturnStatus, không AuditLogs).
+- `docs/PROJECT_DOCUMENTATION.md` — statechart + nghiệp vụ + phân quyền.
+- `docs/API_PAGE_MAPPING.md` — map trang Razor ↔ API + ma trận role.
+- `docs/MANUAL_TEST_CHECKLIST.md` — checklist test thủ công.
 
-## 4. Client status filter
+## 4. Web UI
 
-- `client/manage.html`:
-  - Da co option filter `Compensated`
-  - Dam bao chon duoc `Lost` va `Compensated`
-- `client/js/manage.js`:
-  - Query filter dung `status=<value>`
-  - Bang list hien thi theo moi status nhan tu API.
+- Razor Pages (`EquipmentBorrowingManagementSystem.Web`), **không** còn phụ thuộc `client/*.html` cho flow chính.
+- Toast toàn cục; chuông hiện badge unread.
+- `/Manage`: filter đủ status; hoàn tất BT chọn Available/Retired; return chọn status từng thiết bị.
 
-## 5. Slice 9 - gRPC NotificationService (DONE)
+## 5. gRPC NotificationService
 
-- Project moi: `src/EquipmentBorrowingManagementSystem.Grpc`
-  - Proto: `Protos/notification.proto` (`EmailNotificationService.Send`)
-  - Service: `Services/NotificationGrpcService.cs` (simulate email, log ra console)
-  - Chay: `dotnet run --project src/EquipmentBorrowingManagementSystem.Grpc --launch-profile http` -> `http://localhost:5272`
-- API client: `Infrastructure/Grpc/NotificationClient.cs` implements `INotificationClient`
-- `NotificationService.NotifyAsync`: ghi in-app DB + goi gRPC **non-blocking** (loi gRPC chi log warning, API van thanh cong)
-- Config API: `appsettings.json` -> `GrpcNotification:Address` (mac dinh `http://localhost:5272`)
-- Workflow trigger: approve / reject / return / auto-cancel (qua `BorrowRequestService` -> `NotifyAsync`)
+- Project: `src/EquipmentBorrowingManagementSystem.Grpc`
+- Trigger: approve / reject / handover / return / auto-reject / auto-cancel / overdue
+- In-app `Notifications` + gRPC non-blocking
 
-## 6. Next check
+## 6. Seed
 
-- Chay migration len DB va smoke test nhanh:
-  - `GET /api/equipment?status=Lost`
-  - `GET /api/equipment?status=Compensated`
-  - UI `manage.html` filter Lost/Compensated.
+- `DbInitializer` truncate toàn bộ bảng nghiệp vụ rồi seed lại mỗi lần chạy API.
+- Tài khoản: `admin@ebms.local`, `staff@ebms.local`, `user@ebms.local` (password tương ứng `*@123`).
+- Seed có sẵn đơn Pending / Approved / Completed / Rejected / Overdue với ngày relative `UtcNow`.

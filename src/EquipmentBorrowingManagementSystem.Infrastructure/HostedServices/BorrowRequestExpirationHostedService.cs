@@ -26,7 +26,7 @@ public class BorrowRequestExpirationHostedService : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
                 var borrowService = scope.ServiceProvider.GetRequiredService<IBorrowRequestService>();
-                await borrowService.ProcessExpiredApprovalsAsync();
+                await borrowService.ProcessOverdueTransitionsAsync();
             }
             catch (Exception ex)
             {

@@ -111,6 +111,7 @@ public static class DbInitializer
             RequestDate = today.AddDays(-10),
             BorrowDate = today.AddDays(-9),
             ExpectedReturnDate = today.AddDays(-3),
+            ActualReturnDate = today.AddDays(-2),
             Status = BorrowRequestStatus.Completed,
             Purpose = "Lab workshop",
             ApprovedById = staff.Id,
@@ -154,37 +155,34 @@ public static class DbInitializer
             new BorrowRequestItem
             {
                 BorrowRequestId = pendingRequest.Id,
-                EquipmentId = equipments[3].Id, // Canon — Available in list but pending will reserve on create; seed as Available for pending? 
-                // Pending request should have Reserved equipment. Fix: use Available item and set Reserved.
-                Quantity = 1,
+                EquipmentId = equipments[3].Id, // Canon — reserved while pending approval
                 CreatedAt = today.AddDays(-1)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = approvedRequest.Id,
                 EquipmentId = equipments[2].Id, // HP Reserved
-                Quantity = 1,
                 CreatedAt = today.AddDays(-2)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = completedRequest.Id,
                 EquipmentId = equipments[5].Id, // Shure Available after return
-                Quantity = 1,
+                HandoverNote = "Đủ phụ kiện, còn hộp đựng",
+                ReturnNote = "Trả đúng hạn, thiết bị hoạt động tốt",
+                ReturnStatus = EquipmentStatus.Available,
                 CreatedAt = today.AddDays(-10)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = rejectedRequest.Id,
                 EquipmentId = equipments[8].Id, // BenQ Available
-                Quantity = 1,
                 CreatedAt = today.AddDays(-5)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = overdueRequest.Id,
                 EquipmentId = equipments[7].Id, // Epson Borrowed
-                Quantity = 1,
                 HandoverNote = "Đủ phụ kiện",
                 CreatedAt = today.AddDays(-10)
             }

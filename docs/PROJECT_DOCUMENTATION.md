@@ -1,163 +1,219 @@
 # Equipment Borrowing Management System
 
-**De tai:** P1 - PRN232  
-**Tai lieu:** da cap nhat theo mo hinh status-only.
+**Đề tài:** P1 - PRN232  
+**Tài liệu:** cập nhật theo code hiện tại (status-only, phân quyền User/Staff/Admin tách bạch).
 
-## 1. Tong quan
+## 1. Tổng quan
 
-He thong quan ly muon/tra thiet bi voi 3 vai tro:
+Hệ thống quản lý mượn/trả thiết bị với 3 vai trò:
 
-| Vai tro | Mo ta |
+| Vai trò | Mô tả |
 |---------|-------|
-| `User` | Nguoi muon thiet bi — xem catalog, tao yeu cau muon, theo doi don |
-| `Staff` | Nhan vien van hanh — **duyet muon**, **ban giao/tra**, **quan ly thiet bi & danh muc**, bao cao |
-| `Admin` | Quan tri — toan bo quyen Staff + quan ly tai khoan (tao Staff, kich hoat/vo hieu) |
+| `User` | **Chỉ User** được đăng ký mượn thiết bị, theo dõi/hủy đơn của mình |
+| `Staff` | **Chỉ Staff** được duyệt / từ chối / bàn giao / nhận trả; quản lý thiết bị & danh mục; báo cáo |
+| `Admin` | Quản lý thiết bị & danh mục + Users; **không** vào trang Duyệt mượn; **không** tạo yêu cầu mượn |
 
-Cong nghe:
+Công nghệ:
 
-- ASP.NET Core Web API (.NET 8), kien truc Domain/Application/Infrastructure/Api
+- ASP.NET Core Web API (.NET 8) — Domain / Application / Infrastructure / Api
+- Razor Pages Web (`src/EquipmentBorrowingManagementSystem.Web`) gọi API qua `EbmsApiClient`
 - SQL Server + EF Core migrations
 - JWT + Refresh Token
-- Client HTML/CSS/jQuery (`client/`)
-- OData, JSON/XML content negotiation, audit log, soft delete
-- gRPC `EmailNotificationService` (project rieng, API goi khi approve/reject/return)
+- OData (`/odata/Equipment`, `/odata/BorrowRequests`), JSON/XML content negotiation
+- Soft delete trên entity; **không còn** AuditLog
+- gRPC `EmailNotificationService` (project riêng; API gọi khi có thông báo)
 
-## 2. Trang thai he thong
+## 2. Trạng thái hệ thống
 
 `EquipmentStatus`:
 
-- `Available`, `Borrowed`, `Maintenance`, `Retired`, `Reserved`, `Damaged`
+| Giá trị | Ý nghĩa |
+|---------|---------|
+| `Available` | Sẵn sàng mượn |
+| `Reserved` | Đang giữ chỗ trong đơn Pending/Approved |
+| `Borrowed` | Đã bàn giao, đang mang đi |
+| `Damaged` | Hỏng (sau trả hoặc staff set) |
+| `Maintenance` | Đang bảo trì |
+| `Retired` | Ngừng sử dụng |
+
+> Đã bỏ `Lost` / `Compensated`. Không còn trường `Quantity` trên item.
 
 `BorrowRequestStatus`:
 
-- `Pending`, `Approved`, `Rejected`, `Cancelled`, `InProgress`, `Completed`, `Overdue`
+| Giá trị | Ý nghĩa |
+|---------|---------|
+| `Pending` | Chờ duyệt |
+| `Approved` | Đã duyệt, chờ bàn giao |
+| `Rejected` | Từ chối (staff hoặc auto quá `BorrowDate`) |
+| `Cancelled` | Hủy (user hoặc auto quá `BorrowDate` chưa bàn giao) |
+| `InProgress` | Đã bàn giao, đang mượn |
+| `Overdue` | Quá `ExpectedReturnDate` chưa trả |
+| `Completed` | Đã trả xong |
 
-## 3. Nghiep vu chinh (status-only)
+## 3. Nghiệp vụ chính
 
-1. Tao yeu cau muon (`POST /api/borrow-requests`):
-   - thiet bi hop le khi `status = Available`
-   - tao don xong -> thiet bi `Reserved` ngay
-2. Duyet don (`PATCH status=Approved`): chi tu `Pending`, thiet bi phai con `Reserved`.
-3. Tu choi/Huy (`Rejected`/`Cancelled`): giai phong `Reserved -> Available`.
-4. Ban giao (`PATCH status=InProgress`): ghi `HandoverNote` theo tung item, `Reserved -> Borrowed`.
-5. Tra (`PATCH status=Completed`): staff chọn status từng thiết bị (`Available` / `Damaged` / `Maintenance` / `Retired`), ghi `ReturnNote` + `StaffNote`.
-6. Auto-expire: don `Approved` qua `BorrowDate` chua ban giao -> auto `Cancelled`, tra thiet bi ve `Available`.
-7. Cap nhat thiet bi thu cong (`PUT /api/equipment/{id}`):
-   - Staff chi dat: `Available`, `Maintenance`, `Retired`, `Damaged`
-   - `Borrowed` / `Reserved` chi doi qua luong muon/tra
-   - Hoan tat bao tri: chon `Available` hoac `Retired`
+1. **Tạo yêu cầu** (`POST /api/borrow-requests`) — **chỉ User**
+   - Thiết bị phải `Available`; sau tạo → `Reserved`
+   - Không có `quantity` (mỗi item = 1 thiết bị theo serial)
+   - Nếu user đang có đơn `Overdue` → **400** + toast UI
+2. **Duyệt** (`PATCH status=Approved`) — **chỉ Staff**  
+   Pending → Approved; thiết bị vẫn `Reserved`
+3. **Từ chối** (`PATCH status=Rejected` + `rejectReason`) — **chỉ Staff**  
+   Reserved → Available
+4. **Hủy** (`PATCH status=Cancelled`) — **chủ đơn (User)** khi Pending/Approved  
+   Reserved → Available
+5. **Bàn giao** (`PATCH status=InProgress` + `items[].note`) — **chỉ Staff**  
+   Ghi `HandoverNote` từng item; Reserved → Borrowed
+6. **Trả** (`PATCH status=Completed` + `items[].status` + `items[].note` + `staffNote`) — **chỉ Staff**
+   - Mỗi item bắt buộc chọn `status` ∈ {Available, Damaged, Maintenance, Retired}
+   - Lưu `ReturnNote`, `ReturnStatus` (snapshot), `ActualReturnDate`, `ReturnRecord.StaffNote`
+7. **Tự động quá hạn** (so với ngày, chạy khi GET danh sách/chi tiết, khi tạo đơn, và hosted service mỗi giờ):
+   - Pending + quá `BorrowDate` → **Rejected** (lý do hệ thống) + release Reserved
+   - Approved + quá `BorrowDate` chưa bàn giao → **Cancelled** + release Reserved
+   - InProgress + quá `ExpectedReturnDate` → **Overdue**
+8. **Sửa thiết bị** (`PUT /api/equipment/{id}`) — Staff/Admin
+   - Staff settable: Available / Maintenance / Retired / Damaged
+   - Borrowed / Reserved chỉ đổi qua flow mượn-trả
+   - Hoàn tất bảo trì: chọn Available hoặc Retired
+9. **Xóa thiết bị**: chỉ khi Available / Maintenance / Retired / Damaged (không xóa Reserved/Borrowed)
 
-## 4. API REST
+### Ghi chú (notes) — thống nhất
 
-Auth:
+| Trường | Lưu ở | Ai ghi | Hiển thị |
+|--------|-------|--------|----------|
+| `HandoverNote` | `BorrowRequestItem` | Staff lúc bàn giao | Chi tiết đơn |
+| `ReturnNote` | `BorrowRequestItem` | Staff lúc trả từng TB | Chi tiết đơn |
+| `ReturnStatus` | `BorrowRequestItem` | Staff lúc trả (bắt buộc) | Chi tiết / lịch sử |
+| `StaffNote` | `ReturnRecord` | Staff lúc trả (tùy chọn, ghi chú tổng) | Chi tiết đơn |
+| `RejectReason` | `BorrowRequest` | Staff / hệ thống auto-reject | Chi tiết đơn |
+| `ActualReturnDate` | `BorrowRequest` | Hệ thống lúc Completed | Danh sách + chi tiết |
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
+## 4. API REST (tóm tắt)
 
-Users (Admin):
+Auth: `POST /api/auth/{register,login,refresh,logout}`  
+Users (Admin): `GET/POST /api/users`, `GET/PATCH /api/users/{id}`  
+Equipment (Staff/Admin ghi): `GET/POST/PUT/DELETE /api/equipment`  
+Categories: `GET/POST/PUT/DELETE /api/equipment-categories`  
+Borrow: `GET/POST /api/borrow-requests`, `GET/PATCH /api/borrow-requests/{id}`  
+Reports (Staff/Admin): `GET /api/reports/{dashboard,overdue-requests,borrow-summary}`  
+Notifications: `GET /api/notifications`, `PATCH /api/notifications/{id}/read`
 
-- `GET /api/users`
-- `GET /api/users/{id}`
-- `POST /api/users`
-- `PATCH /api/users/{id}` (`{ "isActive": true|false }`)
-
-Equipment:
-
-- `GET /api/equipment`
-- `GET /api/equipment/{id}`
-- `POST /api/equipment`
-- `PUT /api/equipment/{id}`
-- `DELETE /api/equipment/{id}`
-
-Borrow requests:
-
-- `GET /api/borrow-requests`
-- `GET /api/borrow-requests/{id}`
-- `POST /api/borrow-requests`
-- `PATCH /api/borrow-requests/{id}`
-
-Reports:
-
-- `GET /api/reports/borrow-summary`
-- `GET /api/reports/overdue-requests`
-- `GET /api/reports/dashboard`
-
-## 5. State chart hien tai
+## 5. State chart hiện tại
 
 ### Borrow request workflow
 
 ```mermaid
-flowchart LR
-  Pending -->|"Staff/Admin PATCH Approved"| Approved
-  Pending -->|"Staff/Admin PATCH Rejected"| Rejected
-  Pending -->|"Owner PATCH Cancelled"| Cancelled
-  Approved -->|"Staff/Admin PATCH InProgress + items(note)"| InProgress
-  Approved -->|"Owner PATCH Cancelled"| Cancelled
-  Approved -->|"Auto-expire after BorrowDate"| Cancelled
-  InProgress -->|"Past ExpectedReturnDate"| Overdue
-  InProgress -->|"Staff/Admin PATCH Completed + items(note)"| Completed
-  Overdue -->|"Staff/Admin PATCH Completed + items(note)"| Completed
+stateDiagram-v2
+  [*] --> Pending: User tạo đơn\n(Equipment → Reserved)
+
+  Pending --> Approved: Staff duyệt
+  Pending --> Rejected: Staff từ chối\n(+ rejectReason)
+  Pending --> Cancelled: User hủy
+  Pending --> Rejected: Auto — quá BorrowDate\nchưa duyệt
+
+  Approved --> InProgress: Staff bàn giao\n(+ HandoverNote)
+  Approved --> Cancelled: User hủy
+  Approved --> Cancelled: Auto — quá BorrowDate\nchưa bàn giao
+
+  InProgress --> Overdue: Auto — quá\nExpectedReturnDate
+  InProgress --> Completed: Staff xác nhận trả\n(+ ReturnStatus từng item)
+  Overdue --> Completed: Staff xác nhận trả\n(+ ReturnStatus từng item)
+
+  Rejected --> [*]
+  Cancelled --> [*]
+  Completed --> [*]
 ```
 
 ### Equipment workflow
 
 ```mermaid
-flowchart LR
-  Available -->|"Create borrow request"| Reserved
-  Reserved -->|"Reject/Cancel/Auto-expire"| Available
-  Reserved -->|"Handover (InProgress)"| Borrowed
-  Borrowed -->|"Return: Available/Damaged/Maintenance/Retired"| Available
-  Available -->|"Staff edit"| Maintenance
-  Available -->|"Staff edit"| Damaged
-  Damaged -->|"Staff edit"| Available
-  Damaged -->|"Staff edit"| Maintenance
-  Damaged -->|"Staff edit"| Retired
-  Maintenance -->|"Complete BT"| Available
-  Maintenance -->|"Complete BT"| Retired
+stateDiagram-v2
+  [*] --> Available
+
+  Available --> Reserved: User tạo yêu cầu mượn
+  Available --> Maintenance: Staff sửa / trả về BT
+  Available --> Damaged: Staff sửa / trả về Damaged
+  Available --> Retired: Staff sửa
+
+  Reserved --> Available: Reject / Cancel / Auto-expire
+  Reserved --> Borrowed: Staff bàn giao (InProgress)
+
+  Borrowed --> Available: Trả — chọn Available
+  Borrowed --> Damaged: Trả — chọn Damaged
+  Borrowed --> Maintenance: Trả — chọn Maintenance
+  Borrowed --> Retired: Trả — chọn Retired
+
+  Damaged --> Available: Staff sửa
+  Damaged --> Maintenance: Staff sửa
+  Damaged --> Retired: Staff sửa
+
+  Maintenance --> Available: Hoàn tất BT
+  Maintenance --> Retired: Hoàn tất BT
+
+  note right of Reserved
+    Borrowed / Reserved
+    không sửa status trực tiếp
+    trên /Manage
+  end note
 ```
+
+### Ai được chuyển trạng thái BorrowRequest
+
+| Transition | Ai thực hiện |
+|------------|--------------|
+| (tạo) → Pending | **User** only |
+| Pending → Approved / Rejected | **Staff** only |
+| Approved → InProgress | **Staff** only |
+| InProgress / Overdue → Completed | **Staff** only |
+| Pending / Approved → Cancelled | User (chủ đơn) |
+| Pending → Rejected (auto) | Hệ thống (quá `BorrowDate`) |
+| Approved → Cancelled (auto) | Hệ thống (quá `BorrowDate`) |
+| InProgress → Overdue (auto) | Hệ thống (quá `ExpectedReturnDate`) |
 
 ## 6. ERD
 
-Xem `docs/ERD.dbml`.
+Xem [`docs/ERD.dbml`](ERD.dbml) (import [dbdiagram.io](https://dbdiagram.io)).
 
-Schema hien tai khong con cac cot lien quan condition:
+Thay đổi schema so với bản cũ:
 
-- `equipments.current_condition`
-- `borrow_request_items.condition_at_borrow`
-- `borrow_request_items.condition_at_return`
-- `return_records.overall_condition`
+- **Bỏ** `borrow_request_items.quantity`
+- **Thêm** `borrow_requests.actual_return_date`
+- **Thêm** `borrow_request_items.return_status`
+- **Bỏ** bảng `audit_logs`
+- **Bỏ** mọi cột Condition legacy
 
-## 7. Client manage/filter
+## 7. Web UI (Razor)
 
-Trang `/Manage` (Razor):
+| Trang | Ai vào | Ghi chú |
+|-------|--------|---------|
+| `/Equipment` | Tất cả | Nút Mượn / giỏ chỉ hiện với **User**; chặn + toast nếu đang Overdue |
+| `/Borrow` | User + Staff | Admin **bị chặn**; Staff = Duyệt mượn |
+| `/Manage` | Staff + Admin | CRUD thiết bị/danh mục; hoàn tất BT modal Available/Retired |
+| `/Reports`, `/ODataExplorer`, `/GrpcTools` | Staff + Admin | |
+| `/Users` | Admin | |
+| `/Notifications` | Tất cả | Chuông hiển thị **số chưa đọc** |
 
-- Filter day du cac status: Available, Borrowed, Maintenance, Reserved, Damaged, Retired
-- Hoan tat bao tri mo modal chon Available/Retired
-- Link tu dashboard sang trang quan ly dung query `?status=<Status>`
+Toast toàn cục (`TempData` → `_Layout`) cho success/error sau mọi thao tác quan trọng.
 
-## 8. gRPC NotificationService
+## 8. Thông báo (in-app + gRPC)
 
-Project: `src/EquipmentBorrowingManagementSystem.Grpc`
+| Sự kiện | Type | Người nhận |
+|---------|------|------------|
+| Duyệt | `RequestApproved` | User chủ đơn |
+| Từ chối / auto-reject | `RequestRejected` | User |
+| Bàn giao | `General` | User |
+| Trả xong | `EquipmentReturned` | User |
+| Auto-cancel (quá BorrowDate) | `RequestRejected` | User |
+| Auto Overdue | `RequestOverdue` | User |
 
-| Thanh phan | Mo ta |
-|---|---|
-| Proto | `EmailNotificationService.Send(NotificationRequest)` |
-| Server | Log simulate email ra console |
-| Client | `Infrastructure/Grpc/NotificationClient` |
-| Config | `GrpcNotification:Address` trong API `appsettings.json` |
+gRPC simulate email; lỗi gRPC chỉ log warning, API vẫn thành công.
 
-Chay gRPC service:
+## 9. Chạy local
 
 ```bash
 dotnet run --project src/EquipmentBorrowingManagementSystem.Grpc --launch-profile http
-```
-
-Chay API (terminal khac):
-
-```bash
 dotnet run --project src/EquipmentBorrowingManagementSystem.Api --launch-profile http
+dotnet run --project src/EquipmentBorrowingManagementSystem.Web --launch-profile http
 ```
 
-Khi Staff duyet/tu choi/ghi nhan tra don muon, API vua ghi `Notifications` in-app vua goi gRPC (non-blocking). Neu gRPC service khong chay, API van thanh cong va chi log warning.
+Seed mỗi lần khởi động API (truncate + seed): `admin@ebms.local` / `staff@ebms.local` / `user@ebms.local`.

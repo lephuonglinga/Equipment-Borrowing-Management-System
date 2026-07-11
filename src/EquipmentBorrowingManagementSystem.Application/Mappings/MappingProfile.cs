@@ -24,7 +24,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.EquipmentName,
                 opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.Name : string.Empty))
             .ForMember(dest => dest.SerialNumber,
-                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty));
+                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty))
+            .ForMember(dest => dest.ReturnStatus,
+                opt => opt.MapFrom(src => src.ReturnStatus != null ? src.ReturnStatus.ToString() : null));
 
         CreateMap<BorrowRequest, BorrowRequestDto>()
             .ForMember(dest => dest.UserName,
@@ -32,7 +34,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Status,
                 opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.ApprovedByName,
-                opt => opt.MapFrom(src => src.ApprovedBy != null ? src.ApprovedBy.FullName : null));
+                opt => opt.MapFrom(src => src.ApprovedBy != null ? src.ApprovedBy.FullName : null))
+            .ForMember(dest => dest.StaffNote,
+                opt => opt.MapFrom(src => src.ReturnRecord != null ? src.ReturnRecord.StaffNote : null));
 
         CreateMap<User, UserDto>()
             .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()));
@@ -44,7 +48,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.EquipmentName,
                 opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.Name : string.Empty))
             .ForMember(dest => dest.SerialNumber,
-                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty));
+                opt => opt.MapFrom(src => src.Equipment != null ? src.Equipment.SerialNumber : string.Empty))
+            .ForMember(dest => dest.ReturnStatus,
+                opt => opt.MapFrom(src => src.ReturnStatus != null ? src.ReturnStatus.ToString() : null));
 
         CreateMap<BorrowRequest, BorrowRequestODataDto>()
             .ForMember(dest => dest.UserName,

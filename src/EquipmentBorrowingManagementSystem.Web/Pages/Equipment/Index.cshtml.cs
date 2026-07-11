@@ -18,7 +18,9 @@ public class IndexModel : EbmsPageModel
 
     public List<EquipmentCategoryDto> Categories { get; set; } = [];
     public PagedResult<EquipmentDto>? EquipmentPage { get; set; }
-    public IReadOnlyList<BorrowCartItem> Cart => _cart.GetItems();
+    public IReadOnlyList<BorrowCartItem> Cart => CanBorrow ? _cart.GetItems() : [];
+    public bool CanBorrow => CurrentAuth?.Role == "User";
+    public bool HasOverdueBorrow { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
@@ -49,7 +51,7 @@ public class IndexModel : EbmsPageModel
 
     public async Task<IActionResult> OnPostToggleCartAsync(int equipmentId, CancellationToken cancellationToken)
     {
-        if (EnsureAuthenticated() is IActionResult redirect)
+        if (EnsureUserOnly() is IActionResult redirect)
         {
             return redirect;
         }
@@ -65,6 +67,12 @@ public class IndexModel : EbmsPageModel
                 }
                 else if (equipment.Status == "Available")
                 {
+                    if (await UserHasOverdueBorrowAsync(cancellationToken))
+                    {
+                        SetPageMessage(FormValidation.UserHasOverdueMessage, isError: true);
+                        return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
+                    }
+
                     _cart.Add(equipment);
                 }
             }
@@ -79,7 +87,7 @@ public class IndexModel : EbmsPageModel
 
     public IActionResult OnPostClearCart()
     {
-        if (EnsureAuthenticated() is IActionResult redirect)
+        if (EnsureUserOnly() is IActionResult redirect)
         {
             return redirect;
         }
@@ -94,9 +102,16 @@ public class IndexModel : EbmsPageModel
         string purpose,
         CancellationToken cancellationToken)
     {
-        if (EnsureAuthenticated() is IActionResult redirect)
+        if (EnsureUserOnly() is IActionResult redirect)
         {
             return redirect;
+        }
+
+        if (await UserHasOverdueBorrowAsync(cancellationToken))
+        {
+            _cart.Clear();
+            SetPageMessage(FormValidation.UserHasOverdueMessage, isError: true);
+            return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
         }
 
         var items = _cart.ToApiItems();
@@ -147,7 +162,10 @@ public class IndexModel : EbmsPageModel
         }
         catch (ApiException ex)
         {
-            SetPageMessage(GetApiErrorMessage(ex), isError: true);
+            var message = !string.IsNullOrWhiteSpace(ex.ApiMessage)
+                ? ex.ApiMessage
+                : GetApiErrorMessage(ex);
+            SetPageMessage(message, isError: true);
             return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
         }
     }
@@ -156,6 +174,15 @@ public class IndexModel : EbmsPageModel
     {
         try
         {
+            if (CanBorrow)
+            {
+                HasOverdueBorrow = await UserHasOverdueBorrowAsync(cancellationToken);
+                if (HasOverdueBorrow && _cart.Count > 0)
+                {
+                    _cart.Clear();
+                }
+            }
+
             Categories = await _api.GetAsync<List<EquipmentCategoryDto>>("api/equipment-categories", cancellationToken: cancellationToken) ?? [];
 
             if (CategoryId.HasValue)
@@ -198,6 +225,21 @@ public class IndexModel : EbmsPageModel
         catch (ApiException ex)
         {
             ErrorMessage = GetApiErrorMessage(ex);
+        }
+    }
+
+    private async Task<bool> UserHasOverdueBorrowAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var requests = await _api.GetAsync<List<BorrowRequestDto>>(
+                "api/borrow-requests",
+                cancellationToken: cancellationToken) ?? [];
+            return requests.Any(r => r.Status == "Overdue");
+        }
+        catch (ApiException)
+        {
+            return false;
         }
     }
 }

@@ -47,5 +47,5 @@ public class BorrowCartService
     public void Clear() => Session.ClearBorrowCart();
 
     public List<CreateBorrowRequestItemDto> ToApiItems() =>
-        GetItems().Select(i => new CreateBorrowRequestItemDto { EquipmentId = i.Id, Quantity = 1 }).ToList();
+        GetItems().Select(i => new CreateBorrowRequestItemDto { EquipmentId = i.Id }).ToList();
 }

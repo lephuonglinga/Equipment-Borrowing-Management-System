@@ -10,6 +10,7 @@ public class BorrowRequestODataDto
     public DateTime RequestDate { get; set; }
     public DateTime BorrowDate { get; set; }
     public DateTime ExpectedReturnDate { get; set; }
+    public DateTime? ActualReturnDate { get; set; }
     public BorrowRequestStatus Status { get; set; }
     public string Purpose { get; set; } = string.Empty;
     public string? RejectReason { get; set; }

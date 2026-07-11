@@ -84,6 +84,28 @@ a:hover { color: var(--pink-dark); }
     text-decoration: none;
 }
 
+.nav-bell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+}
+
+.nav-bell-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--danger, #e53e3e);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 999px;
+    min-width: 16px;
+    text-align: center;
+}
+
 .nav-user-menu { position: relative; margin-left: 4px; }
 
 .nav-user-btn {
@@ -516,6 +538,15 @@ a:hover { color: var(--pink-dark); }
     border-radius: var(--radius);
     margin-bottom: 8px;
     font-size: 0.88rem;
+}
+.item-list .item-note {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.item-list .item-note .label {
+    color: inherit;
+    font-weight: 600;
 }
 
 .stats-grid {

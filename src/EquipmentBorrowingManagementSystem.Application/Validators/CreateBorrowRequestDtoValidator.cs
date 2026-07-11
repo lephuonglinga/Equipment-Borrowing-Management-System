@@ -31,8 +31,6 @@ public class CreateBorrowRequestDtoValidator : AbstractValidator<CreateBorrowReq
         {
             item.RuleFor(i => i.EquipmentId)
                 .GreaterThan(0).WithMessage(ValidationMessages.EquipmentIdInvalid);
-            item.RuleFor(i => i.Quantity)
-                .GreaterThan(0).WithMessage(ValidationMessages.QuantityInvalid);
         });
     }
 }

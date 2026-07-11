@@ -8,5 +8,7 @@ public interface IBorrowRequestRepository : IGenericRepository<BorrowRequest>
     Task<BorrowRequest?> GetByIdWithDetailsAsync(int id);
     Task<BorrowRequest?> GetByIdForUpdateAsync(int id);
     Task<bool> UserHasOverdueRequestAsync(int userId);
+    Task<List<BorrowRequest>> GetExpiredPendingAsync(DateTime utcToday);
     Task<List<BorrowRequest>> GetExpiredApprovedAsync(DateTime utcToday);
+    Task<List<BorrowRequest>> GetExpiredInProgressAsync(DateTime utcToday);
 }

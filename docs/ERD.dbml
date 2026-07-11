@@ -1,12 +1,12 @@
 // ERD — import at https://dbdiagram.io
-// Khớp schema EF Core hiện tại (status-only workflow)
+// Khớp schema EF Core hiện tại (sau migration RemoveQuantityAddReturnTracking)
 
 Table users {
   id int [pk, increment]
   email varchar(256) [unique, not null]
   password_hash varchar [not null]
   full_name varchar [not null]
-  role int [not null]
+  role int [not null, note: 'Admin=1 | Staff=2 | User=3']
   is_active bit [not null, default: true]
   created_at datetime [not null]
   is_deleted bit [not null, default: false]
@@ -38,7 +38,7 @@ Table equipments {
   name varchar [not null]
   serial_number varchar [unique, not null]
   category_id int [not null, ref: > equipment_categories.id]
-  status int [not null, note: 'Available|Borrowed|Maintenance|Retired|Reserved|Damaged']
+  status int [not null, note: 'Available=1 | Borrowed=2 | Maintenance=3 | Retired=4 | Reserved=5 | Damaged=6']
   location varchar
   description varchar
   image_url varchar(500)
@@ -53,9 +53,10 @@ Table borrow_requests {
   request_date datetime [not null]
   borrow_date datetime [not null]
   expected_return_date datetime [not null]
-  status int [not null]
-  purpose varchar [not null]
-  reject_reason varchar
+  actual_return_date datetime [note: 'Set khi Completed']
+  status int [not null, note: 'Pending=1 | Approved=2 | Rejected=3 | Cancelled=4 | InProgress=5 | Completed=6 | Overdue=7']
+  purpose varchar(500) [not null]
+  reject_reason varchar(500)
   approved_by_id int [ref: > users.id]
   approved_at datetime
   created_at datetime [not null]
@@ -67,12 +68,16 @@ Table borrow_request_items {
   id int [pk, increment]
   borrow_request_id int [not null, ref: > borrow_requests.id]
   equipment_id int [not null, ref: > equipments.id]
-  quantity int [not null, default: 1]
-  handover_note varchar(500)
-  return_note varchar(500)
+  handover_note varchar(500) [note: 'Ghi chú staff khi bàn giao']
+  return_note varchar(500) [note: 'Ghi chú staff khi trả từng thiết bị']
+  return_status int [note: 'Snapshot EquipmentStatus lúc trả: Available|Damaged|Maintenance|Retired']
   created_at datetime [not null]
   is_deleted bit [not null, default: false]
   deleted_at datetime
+
+  indexes {
+    (borrow_request_id, equipment_id) [unique]
+  }
 }
 
 Table return_records {
@@ -80,7 +85,7 @@ Table return_records {
   borrow_request_id int [unique, not null, ref: - borrow_requests.id]
   returned_at datetime [not null]
   returned_by_id int [not null, ref: > users.id]
-  staff_note varchar
+  staff_note varchar [note: 'Ghi chú tổng của staff khi xác nhận trả']
   created_at datetime [not null]
   is_deleted bit [not null, default: false]
   deleted_at datetime
@@ -91,22 +96,8 @@ Table notifications {
   user_id int [not null, ref: > users.id]
   title varchar [not null]
   message varchar [not null]
-  type int [not null]
+  type int [not null, note: 'RequestApproved|RequestRejected|RequestOverdue|EquipmentReturned|General']
   is_read bit [not null, default: false]
-  created_at datetime [not null]
-  is_deleted bit [not null, default: false]
-  deleted_at datetime
-}
-
-Table audit_logs {
-  id int [pk, increment]
-  user_id int [ref: > users.id]
-  user_email varchar
-  entity_name varchar [not null]
-  entity_id varchar [not null]
-  action int [not null]
-  changes varchar
-  performed_at datetime [not null]
   created_at datetime [not null]
   is_deleted bit [not null, default: false]
   deleted_at datetime

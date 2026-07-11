@@ -35,7 +35,7 @@ public class BorrowRequestsController : ODataController
     [EnableQuery(MaxExpansionDepth = 1)]
     public async Task<IActionResult> Get()
     {
-        await _borrowRequestService.ProcessExpiredApprovalsAsync();
+        await _borrowRequestService.ProcessOverdueTransitionsAsync();
 
         var query = _context.BorrowRequests.AsNoTracking().AsQueryable();
 

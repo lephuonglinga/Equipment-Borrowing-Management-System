@@ -36,7 +36,7 @@ public class IndexModel : EbmsPageModel
     public string? Action { get; set; }
 
     public string ActiveTab => TabStatuses.ContainsKey(Tab) ? Tab : "pending";
-    public bool IsStaff => CurrentAuth?.IsStaffOrAdmin == true;
+    public bool IsStaff => CurrentAuth?.Role == "Staff";
     public string? ActionMode => Action;
     public string Subtitle => IsStaff
         ? "Duyệt đơn → Bàn giao → Nhận trả."
@@ -50,6 +50,11 @@ public class IndexModel : EbmsPageModel
         if (EnsureAuthenticated() is IActionResult redirect)
         {
             return redirect;
+        }
+
+        if (CurrentAuth!.IsAdmin)
+        {
+            return RedirectToPage("/Categories/Index");
         }
 
         await LoadRequestsAsync(cancellationToken);
@@ -71,13 +76,13 @@ public class IndexModel : EbmsPageModel
 
     public async Task<IActionResult> OnPostApproveAsync(int id, string tab, CancellationToken cancellationToken)
     {
-        if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
+        if (EnsureStaffOnly() is IActionResult redirect) return redirect;
         return await PatchAndRedirectAsync(id, new UpdateBorrowRequestDto { Status = "Approved" }, tab, "Đã duyệt — chờ bàn giao thiết bị.", cancellationToken);
     }
 
     public async Task<IActionResult> OnPostRejectAsync(int id, string tab, string rejectReason, CancellationToken cancellationToken)
     {
-        if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
+        if (EnsureStaffOnly() is IActionResult redirect) return redirect;
 
         if (string.IsNullOrWhiteSpace(rejectReason))
         {
@@ -90,7 +95,7 @@ public class IndexModel : EbmsPageModel
 
     public async Task<IActionResult> OnPostHandoverAsync(int id, string tab, Dictionary<int, string> notes, CancellationToken cancellationToken)
     {
-        if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
+        if (EnsureStaffOnly() is IActionResult redirect) return redirect;
 
         var request = await _api.GetAsync<BorrowRequestDto>($"api/borrow-requests/{id}", cancellationToken: cancellationToken);
         var items = request?.Items.Select(i => new UpdateBorrowRequestItemDto
@@ -110,7 +115,7 @@ public class IndexModel : EbmsPageModel
         Dictionary<int, string> statuses,
         CancellationToken cancellationToken)
     {
-        if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
+        if (EnsureStaffOnly() is IActionResult redirect) return redirect;
 
         var request = await _api.GetAsync<BorrowRequestDto>($"api/borrow-requests/{id}", cancellationToken: cancellationToken);
         if (request is null)
