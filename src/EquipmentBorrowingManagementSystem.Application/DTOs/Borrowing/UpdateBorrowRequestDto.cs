@@ -4,6 +4,8 @@ public class UpdateBorrowRequestItemDto
 {
     public int EquipmentId { get; set; }
     public string? Note { get; set; }
+    /// <summary>Required when completing a return: Available, Damaged, Maintenance, or Retired.</summary>
+    public string? Status { get; set; }
 }
 
 /// <summary>

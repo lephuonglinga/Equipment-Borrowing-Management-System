@@ -4,6 +4,8 @@ namespace EquipmentBorrowingManagementSystem.Application.Common;
 public static class ValidationMessages
 {
     public const string Required = "Trường này là bắt buộc.";
+    public const string WhitespaceOnly = "Không được chỉ nhập khoảng trắng.";
+    public const string LocationRequired = "Vị trí là bắt buộc.";
     public const string InvalidEmail = "Email không hợp lệ.";
     public const string PasswordLength = "Mật khẩu phải từ 6 đến 100 ký tự.";
     public const string InvalidData = "Dữ liệu không hợp lệ.";
@@ -28,7 +30,12 @@ public static class ValidationMessages
     public const string StaffNoteMaxLength = "Ghi chú nhân viên tối đa 500 ký tự.";
 
     public const string EquipmentStatusInvalid =
-        "Trạng thái phải là một trong: Available, Maintenance, Retired, Compensated.";
+        "Trạng thái phải là một trong: Available, Maintenance, Retired, Damaged.";
+    public const string ReturnEquipmentStatusRequired = "Phải chọn trạng thái thiết bị khi trả.";
+    public const string ReturnEquipmentStatusInvalid =
+        "Trạng thái trả phải là một trong: Available, Damaged, Maintenance, Retired.";
+    public const string MaintenanceCompleteStatusInvalid =
+        "Sau bảo trì chỉ được chọn Available hoặc Retired.";
 
     public const string RefreshTokenRequired = "Refresh token là bắt buộc.";
 }

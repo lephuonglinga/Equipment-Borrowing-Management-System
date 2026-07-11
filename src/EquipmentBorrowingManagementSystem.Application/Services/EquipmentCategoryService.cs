@@ -38,6 +38,14 @@ public class EquipmentCategoryService : IEquipmentCategoryService
 
     public async Task<Result<EquipmentCategoryDto>> CreateAsync(CreateEquipmentCategoryDto dto)
     {
+        if (InputNormalizer.Require(dto.Name, out var name, ValidationMessages.Required) is { } nameError)
+        {
+            return Result<EquipmentCategoryDto>.Fail(nameError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Name = name;
+        dto.Description = InputNormalizer.TrimToNull(dto.Description);
+
         var existing = await _unitOfWork.EquipmentCategories.GetByNameAsync(dto.Name);
         if (existing != null)
         {
@@ -58,6 +66,14 @@ public class EquipmentCategoryService : IEquipmentCategoryService
 
     public async Task<Result<EquipmentCategoryDto>> UpdateAsync(int id, UpdateEquipmentCategoryDto dto)
     {
+        if (InputNormalizer.Require(dto.Name, out var name, ValidationMessages.Required) is { } nameError)
+        {
+            return Result<EquipmentCategoryDto>.Fail(nameError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Name = name;
+        dto.Description = InputNormalizer.TrimToNull(dto.Description);
+
         var category = await _unitOfWork.EquipmentCategories.GetByIdAsync(id);
         if (category == null)
         {

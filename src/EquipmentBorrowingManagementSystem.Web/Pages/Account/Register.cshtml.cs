@@ -40,14 +40,28 @@ public class RegisterModel : PageModel
             return Page();
         }
 
+        var fullNameError = FormValidation.RequireText(Input.FullName, "Họ tên");
+        if (fullNameError is not null)
+        {
+            ErrorMessage = fullNameError;
+            return Page();
+        }
+
+        var emailError = FormValidation.RequireEmail(Input.Email);
+        if (emailError is not null)
+        {
+            ErrorMessage = emailError;
+            return Page();
+        }
+
         try
         {
             var auth = await _api.PostAsync<AuthSession>(
                 "api/auth/register",
                 new RegisterRequest
                 {
-                    FullName = Input.FullName,
-                    Email = Input.Email,
+                    FullName = Input.FullName.Trim(),
+                    Email = Input.Email.Trim(),
                     Password = Input.Password
                 },
                 requireAuth: false,

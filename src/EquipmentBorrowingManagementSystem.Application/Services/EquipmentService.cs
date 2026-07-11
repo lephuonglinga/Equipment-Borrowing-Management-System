@@ -56,6 +56,27 @@ public class EquipmentService : IEquipmentService
 
     public async Task<Result<EquipmentDto>> CreateAsync(CreateEquipmentDto dto)
     {
+        if (InputNormalizer.Require(dto.Name, out var name, ValidationMessages.Required) is { } nameError)
+        {
+            return Result<EquipmentDto>.Fail(nameError, StatusCodes.Status400BadRequest);
+        }
+
+        if (InputNormalizer.Require(dto.SerialNumber, out var serial, ValidationMessages.Required) is { } serialError)
+        {
+            return Result<EquipmentDto>.Fail(serialError, StatusCodes.Status400BadRequest);
+        }
+
+        if (InputNormalizer.Require(dto.Location, out var location, ValidationMessages.LocationRequired) is { } locationError)
+        {
+            return Result<EquipmentDto>.Fail(locationError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Name = name;
+        dto.SerialNumber = serial;
+        dto.Location = location;
+        dto.Description = InputNormalizer.TrimToNull(dto.Description);
+        dto.ImageUrl = InputNormalizer.TrimToNull(dto.ImageUrl);
+
         var category = await _unitOfWork.EquipmentCategories.GetByIdAsync(dto.CategoryId);
         if (category == null)
         {
@@ -87,10 +108,38 @@ public class EquipmentService : IEquipmentService
 
     public async Task<Result<EquipmentDto>> UpdateAsync(int id, UpdateEquipmentDto dto)
     {
+        if (InputNormalizer.Require(dto.Name, out var name, ValidationMessages.Required) is { } nameError)
+        {
+            return Result<EquipmentDto>.Fail(nameError, StatusCodes.Status400BadRequest);
+        }
+
+        if (InputNormalizer.Require(dto.SerialNumber, out var serial, ValidationMessages.Required) is { } serialError)
+        {
+            return Result<EquipmentDto>.Fail(serialError, StatusCodes.Status400BadRequest);
+        }
+
+        if (InputNormalizer.Require(dto.Location, out var location, ValidationMessages.LocationRequired) is { } locationError)
+        {
+            return Result<EquipmentDto>.Fail(locationError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Name = name;
+        dto.SerialNumber = serial;
+        dto.Location = location;
+        dto.Description = InputNormalizer.TrimToNull(dto.Description);
+        dto.ImageUrl = InputNormalizer.TrimToNull(dto.ImageUrl);
+
         var equipment = await _unitOfWork.Equipment.GetByIdAsync(id);
-        if (equipment == null || equipment.Status == EquipmentStatus.Compensated)
+        if (equipment == null)
         {
             return Result<EquipmentDto>.Fail("Không tìm thấy thiết bị.", StatusCodes.Status404NotFound);
+        }
+
+        if (EquipmentRules.IsFlowLocked(equipment.Status))
+        {
+            return Result<EquipmentDto>.Fail(
+                "Không thể chỉnh sửa thiết bị đang Reserved hoặc Borrowed. Trạng thái này chỉ đổi qua luồng mượn/trả.",
+                StatusCodes.Status400BadRequest);
         }
 
         if (!Enum.TryParse<EquipmentStatus>(dto.Status, ignoreCase: true, out var targetStatus))
@@ -98,23 +147,10 @@ public class EquipmentService : IEquipmentService
             return Result<EquipmentDto>.Fail(ValidationMessages.EquipmentStatusInvalid, StatusCodes.Status400BadRequest);
         }
 
-        var transitionError = ValidateEquipmentTransition(equipment, targetStatus);
+        var transitionError = ValidateEquipmentTransition(equipment.Status, targetStatus);
         if (transitionError != null)
         {
             return Result<EquipmentDto>.Fail(transitionError, StatusCodes.Status400BadRequest);
-        }
-
-        if (equipment.Status is EquipmentStatus.Lost or EquipmentStatus.Compensated)
-        {
-            equipment.Status = targetStatus;
-            if (!string.IsNullOrWhiteSpace(dto.Description))
-            {
-                equipment.Description = dto.Description;
-            }
-
-            _unitOfWork.Equipment.Update(equipment);
-            await _unitOfWork.SaveChangesAsync();
-            return Result<EquipmentDto>.Ok(_mapper.Map<EquipmentDto>(equipment));
         }
 
         var category = await _unitOfWork.EquipmentCategories.GetByIdAsync(dto.CategoryId);
@@ -151,7 +187,7 @@ public class EquipmentService : IEquipmentService
             return Result.Fail("Không tìm thấy thiết bị.", StatusCodes.Status404NotFound);
         }
 
-        if (!EquipmentRules.IsEditable(equipment.Status))
+        if (!EquipmentRules.CanDelete(equipment.Status))
         {
             return Result.Fail("Không thể xóa thiết bị ở trạng thái hiện tại.", StatusCodes.Status400BadRequest);
         }
@@ -168,36 +204,17 @@ public class EquipmentService : IEquipmentService
     }
 
     private static string? ValidateEquipmentTransition(
-        Equipment equipment,
-        EquipmentStatus targetStatus)
+        EquipmentStatus current,
+        EquipmentStatus target)
     {
-        if (equipment.Status == EquipmentStatus.Lost)
+        if (EquipmentRules.IsFlowLocked(current))
         {
-            if (targetStatus != EquipmentStatus.Compensated)
-            {
-                return "Thiết bị Lost chỉ có thể chuyển sang Compensated.";
-            }
-
-            return null;
+            return "Không thể đổi trạng thái khi thiết bị đang Reserved hoặc Borrowed.";
         }
 
-        if (equipment.Status is EquipmentStatus.Borrowed or EquipmentStatus.Reserved)
+        if (!EquipmentRules.IsStaffSettable(target))
         {
-            if (targetStatus != equipment.Status)
-            {
-                return "Không thể đổi trạng thái khi thiết bị đang Reserved hoặc Borrowed.";
-            }
-        }
-
-        if (targetStatus is EquipmentStatus.Lost or EquipmentStatus.Borrowed)
-        {
-            return "Trạng thái Lost/Borrowed chỉ được đặt qua luồng mượn trả.";
-        }
-
-        if (targetStatus == EquipmentStatus.Compensated &&
-            equipment.Status != EquipmentStatus.Lost)
-        {
-            return "Chỉ thiết bị Lost mới có thể chuyển sang Compensated.";
+            return "Trạng thái Borrowed/Reserved chỉ được đặt qua luồng mượn trả.";
         }
 
         return null;

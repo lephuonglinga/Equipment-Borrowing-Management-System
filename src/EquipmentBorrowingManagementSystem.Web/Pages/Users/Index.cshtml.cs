@@ -49,6 +49,20 @@ public class IndexModel : EbmsPageModel
     {
         if (EnsureAdmin() is IActionResult redirect) return redirect;
 
+        var fullNameError = FormValidation.RequireText(fullName, "Họ tên");
+        if (fullNameError is not null)
+        {
+            SetPageMessage(fullNameError, isError: true);
+            return RedirectToPage();
+        }
+
+        var emailError = FormValidation.RequireEmail(email);
+        if (emailError is not null)
+        {
+            SetPageMessage(emailError, isError: true);
+            return RedirectToPage();
+        }
+
         try
         {
             await _api.PostAsync("api/users", new CreateUserDto

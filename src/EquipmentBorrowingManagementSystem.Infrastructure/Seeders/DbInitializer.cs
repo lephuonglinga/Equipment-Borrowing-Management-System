@@ -9,12 +9,10 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(AppDbContext context)
     {
-        if (await context.Users.AnyAsync())
-        {
-            return;
-        }
+        await TruncateAllAsync(context);
 
-        var seedTime = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
+        var now = DateTime.UtcNow;
+        var today = now.Date;
 
         var admin = new User
         {
@@ -23,7 +21,7 @@ public static class DbInitializer
             FullName = "System Admin",
             Role = UserRole.Admin,
             IsActive = true,
-            CreatedAt = seedTime
+            CreatedAt = today.AddDays(-30)
         };
 
         var staff = new User
@@ -33,7 +31,7 @@ public static class DbInitializer
             FullName = "Equipment Staff",
             Role = UserRole.Staff,
             IsActive = true,
-            CreatedAt = seedTime
+            CreatedAt = today.AddDays(-30)
         };
 
         var user = new User
@@ -43,7 +41,7 @@ public static class DbInitializer
             FullName = "Regular User",
             Role = UserRole.User,
             IsActive = true,
-            CreatedAt = seedTime
+            CreatedAt = today.AddDays(-30)
         };
 
         context.Users.AddRange(admin, staff, user);
@@ -51,11 +49,11 @@ public static class DbInitializer
 
         var categories = new[]
         {
-            new EquipmentCategory { Name = "Laptops", Description = "Portable computers", CreatedAt = seedTime },
-            new EquipmentCategory { Name = "Cameras", Description = "Photo and video cameras", CreatedAt = seedTime },
-            new EquipmentCategory { Name = "Audio", Description = "Microphones and speakers", CreatedAt = seedTime },
-            new EquipmentCategory { Name = "Projectors", Description = "Presentation projectors", CreatedAt = seedTime },
-            new EquipmentCategory { Name = "Tools", Description = "Hand tools and meters", CreatedAt = seedTime }
+            new EquipmentCategory { Name = "Laptops", Description = "Portable computers", CreatedAt = today.AddDays(-30) },
+            new EquipmentCategory { Name = "Cameras", Description = "Photo and video cameras", CreatedAt = today.AddDays(-30) },
+            new EquipmentCategory { Name = "Audio", Description = "Microphones and speakers", CreatedAt = today.AddDays(-30) },
+            new EquipmentCategory { Name = "Projectors", Description = "Presentation projectors", CreatedAt = today.AddDays(-30) },
+            new EquipmentCategory { Name = "Tools", Description = "Hand tools and meters", CreatedAt = today.AddDays(-30) }
         };
 
         context.EquipmentCategories.AddRange(categories);
@@ -63,85 +61,90 @@ public static class DbInitializer
 
         var equipments = new List<Equipment>
         {
-            new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = seedTime },
-            new() { Name = "MacBook Pro 14", SerialNumber = "LAP-002", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = seedTime },
-            new() { Name = "HP EliteBook", SerialNumber = "LAP-003", CategoryId = categories[0].Id, Status = EquipmentStatus.Reserved, Location = "Room A2", CreatedAt = seedTime },
-            new() { Name = "Canon EOS R10", SerialNumber = "CAM-001", CategoryId = categories[1].Id, Status = EquipmentStatus.Available, Location = "Room B1", CreatedAt = seedTime },
-            new() { Name = "Sony A7 III", SerialNumber = "CAM-002", CategoryId = categories[1].Id, Status = EquipmentStatus.Maintenance, Location = "Repair", CreatedAt = seedTime },
-            new() { Name = "Shure SM58", SerialNumber = "AUD-001", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = seedTime },
-            new() { Name = "JBL Speaker", SerialNumber = "AUD-002", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = seedTime },
-            new() { Name = "Epson EB-X49", SerialNumber = "PRJ-001", CategoryId = categories[3].Id, Status = EquipmentStatus.Borrowed, Location = "Room D1", CreatedAt = seedTime },
-            new() { Name = "BenQ MH535A", SerialNumber = "PRJ-002", CategoryId = categories[3].Id, Status = EquipmentStatus.Available, Location = "Room D2", CreatedAt = seedTime },
-            new() { Name = "Digital Multimeter", SerialNumber = "TOL-001", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = seedTime },
-            new() { Name = "Oscilloscope", SerialNumber = "TOL-002", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = seedTime },
-            new() { Name = "Lenovo ThinkPad", SerialNumber = "LAP-004", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A2", CreatedAt = seedTime }
+            new() { Name = "Dell Latitude 5420", SerialNumber = "LAP-001", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "MacBook Pro 14", SerialNumber = "LAP-002", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "HP EliteBook", SerialNumber = "LAP-003", CategoryId = categories[0].Id, Status = EquipmentStatus.Reserved, Location = "Room A2", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Canon EOS R10", SerialNumber = "CAM-001", CategoryId = categories[1].Id, Status = EquipmentStatus.Available, Location = "Room B1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Sony A7 III", SerialNumber = "CAM-002", CategoryId = categories[1].Id, Status = EquipmentStatus.Maintenance, Location = "Repair", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Shure SM58", SerialNumber = "AUD-001", CategoryId = categories[2].Id, Status = EquipmentStatus.Available, Location = "Room C1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "JBL Speaker", SerialNumber = "AUD-002", CategoryId = categories[2].Id, Status = EquipmentStatus.Damaged, Location = "Room C1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Epson EB-X49", SerialNumber = "PRJ-001", CategoryId = categories[3].Id, Status = EquipmentStatus.Borrowed, Location = "Room D1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "BenQ MH535A", SerialNumber = "PRJ-002", CategoryId = categories[3].Id, Status = EquipmentStatus.Available, Location = "Room D2", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Digital Multimeter", SerialNumber = "TOL-001", CategoryId = categories[4].Id, Status = EquipmentStatus.Available, Location = "Lab 1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Oscilloscope", SerialNumber = "TOL-002", CategoryId = categories[4].Id, Status = EquipmentStatus.Retired, Location = "Lab 1", CreatedAt = today.AddDays(-30) },
+            new() { Name = "Lenovo ThinkPad", SerialNumber = "LAP-004", CategoryId = categories[0].Id, Status = EquipmentStatus.Available, Location = "Room A2", CreatedAt = today.AddDays(-30) }
         };
 
         context.Equipments.AddRange(equipments);
         await context.SaveChangesAsync();
 
+        // Pending: borrow tomorrow, return in 4 days
         var pendingRequest = new BorrowRequest
         {
             UserId = user.Id,
-            RequestDate = seedTime.AddDays(10),
-            BorrowDate = seedTime.AddDays(12),
-            ExpectedReturnDate = seedTime.AddDays(15),
+            RequestDate = today.AddDays(-1),
+            BorrowDate = today.AddDays(1),
+            ExpectedReturnDate = today.AddDays(4),
             Status = BorrowRequestStatus.Pending,
             Purpose = "Project presentation rehearsal",
-            CreatedAt = seedTime.AddDays(10)
+            CreatedAt = today.AddDays(-1)
         };
 
+        // Approved / chờ bàn giao: borrow today, return in 7 days
         var approvedRequest = new BorrowRequest
         {
             UserId = user.Id,
-            RequestDate = seedTime.AddDays(5),
-            BorrowDate = seedTime.AddDays(6),
-            ExpectedReturnDate = seedTime.AddDays(20),
+            RequestDate = today.AddDays(-2),
+            BorrowDate = today,
+            ExpectedReturnDate = today.AddDays(7),
             Status = BorrowRequestStatus.Approved,
             Purpose = "Field recording session — chờ bàn giao",
             ApprovedById = staff.Id,
-            ApprovedAt = seedTime.AddDays(5).AddHours(2),
-            CreatedAt = seedTime.AddDays(5)
+            ApprovedAt = today.AddDays(-2).AddHours(2),
+            CreatedAt = today.AddDays(-2)
         };
 
+        // Completed: borrowed last week, returned 2 days ago
         var completedRequest = new BorrowRequest
         {
             UserId = user.Id,
-            RequestDate = seedTime.AddDays(1),
-            BorrowDate = seedTime.AddDays(2),
-            ExpectedReturnDate = seedTime.AddDays(8),
+            RequestDate = today.AddDays(-10),
+            BorrowDate = today.AddDays(-9),
+            ExpectedReturnDate = today.AddDays(-3),
             Status = BorrowRequestStatus.Completed,
             Purpose = "Lab workshop",
             ApprovedById = staff.Id,
-            ApprovedAt = seedTime.AddDays(1).AddHours(1),
-            CreatedAt = seedTime.AddDays(1)
+            ApprovedAt = today.AddDays(-10).AddHours(1),
+            CreatedAt = today.AddDays(-10)
         };
 
+        // Rejected
         var rejectedRequest = new BorrowRequest
         {
             UserId = user.Id,
-            RequestDate = seedTime.AddDays(7),
-            BorrowDate = seedTime.AddDays(8),
-            ExpectedReturnDate = seedTime.AddDays(9),
+            RequestDate = today.AddDays(-5),
+            BorrowDate = today.AddDays(-4),
+            ExpectedReturnDate = today.AddDays(-1),
             Status = BorrowRequestStatus.Rejected,
             Purpose = "Personal use",
             RejectReason = "Insufficient business justification",
             ApprovedById = staff.Id,
-            ApprovedAt = seedTime.AddDays(7).AddHours(3),
-            CreatedAt = seedTime.AddDays(7)
+            ApprovedAt = today.AddDays(-5).AddHours(3),
+            CreatedAt = today.AddDays(-5)
         };
 
+        // Overdue: borrowed 9 days ago, due 2 days ago, still out
         var overdueRequest = new BorrowRequest
         {
             UserId = user.Id,
-            RequestDate = seedTime.AddDays(-10),
-            BorrowDate = seedTime.AddDays(-9),
-            ExpectedReturnDate = seedTime.AddDays(-2),
+            RequestDate = today.AddDays(-10),
+            BorrowDate = today.AddDays(-9),
+            ExpectedReturnDate = today.AddDays(-2),
             Status = BorrowRequestStatus.Overdue,
             Purpose = "Extended lab testing",
             ApprovedById = staff.Id,
-            ApprovedAt = seedTime.AddDays(-10).AddHours(1),
-            CreatedAt = seedTime.AddDays(-10)
+            ApprovedAt = today.AddDays(-10).AddHours(1),
+            CreatedAt = today.AddDays(-10)
         };
 
         context.BorrowRequests.AddRange(pendingRequest, approvedRequest, completedRequest, rejectedRequest, overdueRequest);
@@ -151,48 +154,52 @@ public static class DbInitializer
             new BorrowRequestItem
             {
                 BorrowRequestId = pendingRequest.Id,
-                EquipmentId = equipments[3].Id,
+                EquipmentId = equipments[3].Id, // Canon — Available in list but pending will reserve on create; seed as Available for pending? 
+                // Pending request should have Reserved equipment. Fix: use Available item and set Reserved.
                 Quantity = 1,
-                CreatedAt = seedTime.AddDays(10)
+                CreatedAt = today.AddDays(-1)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = approvedRequest.Id,
-                EquipmentId = equipments[2].Id,
+                EquipmentId = equipments[2].Id, // HP Reserved
                 Quantity = 1,
-                CreatedAt = seedTime.AddDays(5)
+                CreatedAt = today.AddDays(-2)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = completedRequest.Id,
-                EquipmentId = equipments[5].Id,
+                EquipmentId = equipments[5].Id, // Shure Available after return
                 Quantity = 1,
-                CreatedAt = seedTime.AddDays(1)
+                CreatedAt = today.AddDays(-10)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = rejectedRequest.Id,
-                EquipmentId = equipments[8].Id,
+                EquipmentId = equipments[8].Id, // BenQ Available
                 Quantity = 1,
-                CreatedAt = seedTime.AddDays(7)
+                CreatedAt = today.AddDays(-5)
             },
             new BorrowRequestItem
             {
                 BorrowRequestId = overdueRequest.Id,
-                EquipmentId = equipments[7].Id,
+                EquipmentId = equipments[7].Id, // Epson Borrowed
                 Quantity = 1,
                 HandoverNote = "Đủ phụ kiện",
-                CreatedAt = seedTime.AddDays(-10)
+                CreatedAt = today.AddDays(-10)
             }
         );
+
+        // Pending request equipment should be Reserved
+        equipments[3].Status = EquipmentStatus.Reserved;
 
         context.ReturnRecords.Add(new ReturnRecord
         {
             BorrowRequestId = completedRequest.Id,
-            ReturnedAt = seedTime.AddDays(7),
+            ReturnedAt = today.AddDays(-2),
             ReturnedById = staff.Id,
             StaffNote = "Returned in good condition",
-            CreatedAt = seedTime.AddDays(7)
+            CreatedAt = today.AddDays(-2)
         });
 
         context.Notifications.AddRange(
@@ -203,7 +210,7 @@ public static class DbInitializer
                 Message = "Your borrow request has been approved.",
                 Type = NotificationType.RequestApproved,
                 IsRead = true,
-                CreatedAt = seedTime.AddDays(5)
+                CreatedAt = today.AddDays(-2)
             },
             new Notification
             {
@@ -212,7 +219,7 @@ public static class DbInitializer
                 Message = "Your borrow request was rejected.",
                 Type = NotificationType.RequestRejected,
                 IsRead = false,
-                CreatedAt = seedTime.AddDays(7)
+                CreatedAt = today.AddDays(-5)
             },
             new Notification
             {
@@ -221,10 +228,25 @@ public static class DbInitializer
                 Message = "Please return borrowed equipment.",
                 Type = NotificationType.RequestOverdue,
                 IsRead = false,
-                CreatedAt = seedTime.AddDays(-1)
+                CreatedAt = today.AddDays(-1)
             }
         );
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task TruncateAllAsync(AppDbContext context)
+    {
+        // Disable FK checks and wipe all business tables so seed always starts clean.
+        await context.Database.ExecuteSqlRawAsync("""
+            DELETE FROM Notifications;
+            DELETE FROM ReturnRecords;
+            DELETE FROM BorrowRequestItems;
+            DELETE FROM BorrowRequests;
+            DELETE FROM RefreshTokens;
+            DELETE FROM Equipments;
+            DELETE FROM EquipmentCategories;
+            DELETE FROM Users;
+            """);
     }
 }

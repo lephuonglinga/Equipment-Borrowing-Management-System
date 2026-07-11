@@ -7,9 +7,11 @@
 
 He thong quan ly muon/tra thiet bi voi 3 vai tro:
 
-- `Admin`
-- `Staff`
-- `User`
+| Vai tro | Mo ta |
+|---------|-------|
+| `User` | Nguoi muon thiet bi — xem catalog, tao yeu cau muon, theo doi don |
+| `Staff` | Nhan vien van hanh — **duyet muon**, **ban giao/tra**, **quan ly thiet bi & danh muc**, bao cao |
+| `Admin` | Quan tri — toan bo quyen Staff + quan ly tai khoan (tao Staff, kich hoat/vo hieu) |
 
 Cong nghe:
 
@@ -24,7 +26,7 @@ Cong nghe:
 
 `EquipmentStatus`:
 
-- `Available`, `Borrowed`, `Maintenance`, `Retired`, `Reserved`, `Lost`, `Compensated`
+- `Available`, `Borrowed`, `Maintenance`, `Retired`, `Reserved`, `Damaged`
 
 `BorrowRequestStatus`:
 
@@ -38,12 +40,12 @@ Cong nghe:
 2. Duyet don (`PATCH status=Approved`): chi tu `Pending`, thiet bi phai con `Reserved`.
 3. Tu choi/Huy (`Rejected`/`Cancelled`): giai phong `Reserved -> Available`.
 4. Ban giao (`PATCH status=InProgress`): ghi `HandoverNote` theo tung item, `Reserved -> Borrowed`.
-5. Tra (`PATCH status=Completed`): ghi `ReturnNote` + `StaffNote`, `Borrowed -> Available`.
+5. Tra (`PATCH status=Completed`): staff chọn status từng thiết bị (`Available` / `Damaged` / `Maintenance` / `Retired`), ghi `ReturnNote` + `StaffNote`.
 6. Auto-expire: don `Approved` qua `BorrowDate` chua ban giao -> auto `Cancelled`, tra thiet bi ve `Available`.
 7. Cap nhat thiet bi thu cong (`PUT /api/equipment/{id}`):
-   - `Maintenance -> Available`
-   - `Lost -> Compensated`
-   - khong cho doi status khi dang `Reserved`/`Borrowed`
+   - Staff chi dat: `Available`, `Maintenance`, `Retired`, `Damaged`
+   - `Borrowed` / `Reserved` chi doi qua luong muon/tra
+   - Hoan tat bao tri: chon `Available` hoac `Retired`
 
 ## 4. API REST
 
@@ -106,11 +108,14 @@ flowchart LR
   Available -->|"Create borrow request"| Reserved
   Reserved -->|"Reject/Cancel/Auto-expire"| Available
   Reserved -->|"Handover (InProgress)"| Borrowed
-  Borrowed -->|"Return (Completed)"| Available
-  Available -->|"Manual update"| Maintenance
-  Maintenance -->|"Manual complete maintenance"| Available
-  Borrowed -->|"Mark lost in borrow workflow"| Lost
-  Lost -->|"Confirm compensation"| Compensated
+  Borrowed -->|"Return: Available/Damaged/Maintenance/Retired"| Available
+  Available -->|"Staff edit"| Maintenance
+  Available -->|"Staff edit"| Damaged
+  Damaged -->|"Staff edit"| Available
+  Damaged -->|"Staff edit"| Maintenance
+  Damaged -->|"Staff edit"| Retired
+  Maintenance -->|"Complete BT"| Available
+  Maintenance -->|"Complete BT"| Retired
 ```
 
 ## 6. ERD
@@ -126,10 +131,10 @@ Schema hien tai khong con cac cot lien quan condition:
 
 ## 7. Client manage/filter
 
-Trang `client/manage.html` va `client/js/manage.js`:
+Trang `/Manage` (Razor):
 
-- Filter day du cac status, bao gom `Lost` va `Compensated`
-- Danh sach van hien thi day du cac status
+- Filter day du cac status: Available, Borrowed, Maintenance, Reserved, Damaged, Retired
+- Hoan tat bao tri mo modal chon Available/Retired
 - Link tu dashboard sang trang quan ly dung query `?status=<Status>`
 
 ## 8. gRPC NotificationService

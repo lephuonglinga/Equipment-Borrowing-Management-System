@@ -38,7 +38,7 @@ Table equipments {
   name varchar [not null]
   serial_number varchar [unique, not null]
   category_id int [not null, ref: > equipment_categories.id]
-  status int [not null, note: 'Available|Borrowed|Maintenance|Retired|Reserved|Lost|Compensated']
+  status int [not null, note: 'Available|Borrowed|Maintenance|Retired|Reserved|Damaged']
   location varchar
   description varchar
   image_url varchar(500)

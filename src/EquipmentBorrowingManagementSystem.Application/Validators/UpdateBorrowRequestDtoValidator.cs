@@ -24,8 +24,10 @@ public class UpdateBorrowRequestDtoValidator : AbstractValidator<UpdateBorrowReq
             .WithMessage(ValidationMessages.BorrowStatusInvalid);
 
         RuleFor(x => x.RejectReason)
-            .NotEmpty().WithMessage(ValidationMessages.RejectReasonRequired)
-            .MaximumLength(500).WithMessage(ValidationMessages.RejectReasonMaxLength)
+            .Must(value => InputNormalizer.HasContent(value))
+            .WithMessage(ValidationMessages.RejectReasonRequired)
+            .Must(value => value!.Trim().Length <= 500)
+            .WithMessage(ValidationMessages.RejectReasonMaxLength)
             .When(x => string.Equals(x.Status, nameof(BorrowRequestStatus.Rejected), StringComparison.OrdinalIgnoreCase));
 
         RuleFor(x => x.StaffNote)
@@ -88,6 +90,16 @@ public class UpdateBorrowRequestDtoValidator : AbstractValidator<UpdateBorrowReq
             if (item.EquipmentId <= 0)
             {
                 context.AddFailure(nameof(dto.Items), ValidationMessages.EquipmentIdInvalid);
+            }
+
+            if (string.IsNullOrWhiteSpace(item.Status))
+            {
+                context.AddFailure(nameof(dto.Items), ValidationMessages.ReturnEquipmentStatusRequired);
+            }
+            else if (!Enum.TryParse<EquipmentStatus>(item.Status, ignoreCase: true, out var status) ||
+                     !EquipmentRules.IsValidReturnStatus(status))
+            {
+                context.AddFailure(nameof(dto.Items), ValidationMessages.ReturnEquipmentStatusInvalid);
             }
 
             if (item.Note != null && item.Note.Length > 500)

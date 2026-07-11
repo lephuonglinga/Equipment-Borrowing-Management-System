@@ -24,6 +24,19 @@ public class AuthService : IAuthService
 
     public async Task<Result<AuthResponseDto>> RegisterAsync(RegisterDto dto)
     {
+        if (InputNormalizer.Require(dto.Email, out var email, ValidationMessages.Required) is { } emailError)
+        {
+            return Result<AuthResponseDto>.Fail(emailError, StatusCodes.Status400BadRequest);
+        }
+
+        if (InputNormalizer.Require(dto.FullName, out var fullName, ValidationMessages.Required) is { } nameError)
+        {
+            return Result<AuthResponseDto>.Fail(nameError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Email = email;
+        dto.FullName = fullName;
+
         var existing = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (existing != null)
         {
@@ -48,6 +61,8 @@ public class AuthService : IAuthService
 
     public async Task<Result<AuthResponseDto>> LoginAsync(LoginDto dto)
     {
+        dto.Email = InputNormalizer.TrimRequired(dto.Email);
+
         var user = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (user == null || !_passwordHasher.Verify(dto.Password, user.PasswordHash))
         {

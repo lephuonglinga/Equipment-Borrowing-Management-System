@@ -22,7 +22,7 @@ public class IndexModel : EbmsPageModel
     [BindProperty(SupportsGet = true)]
     public string Tab { get; set; } = "equipment";
 
-    [BindProperty(SupportsGet = true)]
+    [BindProperty(SupportsGet = true, Name = "status")]
     public string? StatusFilter { get; set; }
 
     [BindProperty(SupportsGet = true)]
@@ -35,7 +35,7 @@ public class IndexModel : EbmsPageModel
     public int? EditCategoryId { get; set; }
 
     public string ActiveTab => Tab == "categories" ? "categories" : "equipment";
-    public bool ShowEquipmentModal => EditEquipmentId.HasValue;
+    public bool ShowEquipmentModal => EditEquipmentId.HasValue && EditEquipment is not null;
     public bool ShowCategoryModal => EditCategoryId.HasValue;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
@@ -55,6 +55,27 @@ public class IndexModel : EbmsPageModel
     {
         if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
 
+        var nameError = FormValidation.RequireText(name, "Tên thiết bị");
+        if (nameError is not null)
+        {
+            SetPageMessage(nameError, isError: true);
+            return RedirectToPage(new { tab, status, pageNumber });
+        }
+
+        var serialError = FormValidation.RequireText(serialNumber, "Số serial");
+        if (serialError is not null)
+        {
+            SetPageMessage(serialError, isError: true);
+            return RedirectToPage(new { tab, status, pageNumber });
+        }
+
+        var locationError = FormValidation.RequireText(location, "Vị trí");
+        if (locationError is not null)
+        {
+            SetPageMessage(locationError, isError: true);
+            return RedirectToPage(new { tab, status, pageNumber });
+        }
+
         try
         {
             if (id.HasValue)
@@ -65,7 +86,7 @@ public class IndexModel : EbmsPageModel
                     SerialNumber = serialNumber.Trim(),
                     CategoryId = categoryId,
                     Status = statusValue ?? "Available",
-                    Location = string.IsNullOrWhiteSpace(location) ? null : location.Trim(),
+                    Location = location.Trim(),
                     Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                     ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim()
                 }, cancellationToken: cancellationToken);
@@ -78,7 +99,7 @@ public class IndexModel : EbmsPageModel
                     Name = name.Trim(),
                     SerialNumber = serialNumber.Trim(),
                     CategoryId = categoryId,
-                    Location = string.IsNullOrWhiteSpace(location) ? null : location.Trim(),
+                    Location = location.Trim(),
                     Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                     ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim()
                 }, cancellationToken: cancellationToken);
@@ -105,21 +126,30 @@ public class IndexModel : EbmsPageModel
         return RedirectToPage(new { tab, status, pageNumber });
     }
 
-    public async Task<IActionResult> OnPostCompleteMaintenanceAsync(int id, string tab, string? status, int pageNumber, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostCompleteMaintenanceAsync(
+        int id, string targetStatus, string tab, string? status, int pageNumber, CancellationToken cancellationToken)
     {
         if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
-        return await UpdateEquipmentStatusAsync(id, "Available", "Đã hoàn tất bảo trì.", tab, status, pageNumber, cancellationToken);
-    }
 
-    public async Task<IActionResult> OnPostCompensateAsync(int id, string tab, string? status, int pageNumber, CancellationToken cancellationToken)
-    {
-        if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
-        return await UpdateEquipmentStatusAsync(id, "Compensated", "Đã xác nhận đền bù.", tab, status, pageNumber, cancellationToken);
+        if (!FormValidation.MaintenanceCompleteStatuses.Contains(targetStatus))
+        {
+            SetPageMessage("Sau bảo trì chỉ được chọn Available hoặc Retired.", isError: true);
+            return RedirectToPage(new { tab, status, pageNumber });
+        }
+
+        return await UpdateEquipmentStatusAsync(id, targetStatus, "Đã hoàn tất bảo trì.", tab, status, pageNumber, cancellationToken);
     }
 
     public async Task<IActionResult> OnPostSaveCategoryAsync(int? id, string name, string? description, CancellationToken cancellationToken)
     {
         if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
+
+        var nameError = FormValidation.RequireText(name, "Tên danh mục");
+        if (nameError is not null)
+        {
+            SetPageMessage(nameError, isError: true);
+            return RedirectToPage(new { tab = "categories" });
+        }
 
         try
         {
@@ -164,7 +194,7 @@ public class IndexModel : EbmsPageModel
                 SerialNumber = eq.SerialNumber,
                 CategoryId = eq.CategoryId,
                 Status = status,
-                Location = eq.Location,
+                Location = eq.Location ?? string.Empty,
                 Description = eq.Description,
                 ImageUrl = eq.ImageUrl
             }, cancellationToken: cancellationToken);
@@ -181,6 +211,11 @@ public class IndexModel : EbmsPageModel
         if (EditEquipmentId.HasValue)
         {
             EditEquipment = await _api.GetAsync<EquipmentDto>($"api/equipment/{EditEquipmentId.Value}", cancellationToken: cancellationToken);
+            if (EditEquipment is not null && !FormValidation.CanEditEquipment(EditEquipment.Status))
+            {
+                SetPageMessage("Thiết bị này không thể chỉnh sửa.", isError: true);
+                EditEquipment = null;
+            }
         }
 
         if (EditCategoryId.HasValue)

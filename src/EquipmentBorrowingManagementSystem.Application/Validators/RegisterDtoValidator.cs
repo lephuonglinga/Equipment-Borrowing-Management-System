@@ -9,7 +9,7 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
     public RegisterDtoValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage(ValidationMessages.Required)
+            .Must(v => !string.IsNullOrWhiteSpace(v)).WithMessage(ValidationMessages.Required)
             .EmailAddress().WithMessage(ValidationMessages.InvalidEmail)
             .MaximumLength(256);
 
@@ -19,7 +19,7 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
             .MaximumLength(100).WithMessage(ValidationMessages.PasswordLength);
 
         RuleFor(x => x.FullName)
-            .NotEmpty().WithMessage(ValidationMessages.Required)
+            .Must(v => !string.IsNullOrWhiteSpace(v)).WithMessage(ValidationMessages.Required)
             .MaximumLength(200);
     }
 }

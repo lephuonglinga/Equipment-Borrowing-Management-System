@@ -17,8 +17,7 @@ public static class DisplayHelper
         "Maintenance" => "status-maintenance",
         "Retired" => "status-retired",
         "Reserved" => "status-reserved",
-        "Lost" => "status-lost",
-        "Compensated" => "status-compensated",
+        "Damaged" => "status-damaged",
         _ => "status-default"
     };
 

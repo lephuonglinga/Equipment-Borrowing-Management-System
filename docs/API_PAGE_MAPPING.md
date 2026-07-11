@@ -4,6 +4,25 @@ Web app runs at `http://localhost:5172`. API at `http://localhost:5171`. gRPC no
 
 All REST/OData calls are made **server-side** from Razor Page models via `EbmsApiClient` (session bearer token). gRPC is invoked **server-side** from `GrpcNotificationService`.
 
+## Role & function matrix
+
+| Chức năng | User | Staff | Admin |
+|-----------|:----:|:-----:|:-----:|
+| Xem danh mục / thiết bị, đăng ký mượn | ✓ | ✓ | ✓ |
+| Theo dõi yêu cầu mượn của bản thân | ✓ | ✓ | ✓ |
+| **Duyệt / từ chối / bàn giao / nhận trả** yêu cầu mượn | | **✓** | ✓ |
+| **Quản lý thiết bị & danh mục** (`/Manage`) | | **✓** | ✓ |
+| Báo cáo, OData Explorer, gRPC tools | | ✓ | ✓ |
+| Quản lý Users (tạo Staff, kích hoạt/vô hiệu) | | | ✓ |
+
+Ghi chú:
+
+- **Staff** là vai trò vận hành chính: duyệt mượn và CRUD thiết bị/danh mục.
+- **Admin** có toàn bộ quyền Staff, cộng thêm quản lý tài khoản.
+- **User** chỉ mượn thiết bị và theo dõi đơn của mình.
+
+## Page route ↔ API
+
 | Page route | Feature | API endpoints used |
 |------------|---------|-------------------|
 | `/Account/Login` | Authentication | `POST /api/auth/login` |
@@ -12,8 +31,8 @@ All REST/OData calls are made **server-side** from Razor Page models via `EbmsAp
 | `/Categories` | Category listing | `GET /api/equipment-categories` |
 | `/Equipment` | Equipment catalog, filters, borrow cart | `GET /api/equipment-categories`, `GET /api/equipment`, `GET /api/equipment/{id}`, `POST /api/borrow-requests` |
 | `/Equipment/{id}` | Equipment detail, cart toggle | `GET /api/equipment/{id}` |
-| `/Borrow` | Borrow requests (tabs, approve/handover/return) | `GET /api/borrow-requests`, `GET /api/borrow-requests/{id}`, `PATCH /api/borrow-requests/{id}` |
-| `/Manage` | Equipment & category CRUD (Staff/Admin) | `GET/POST/PUT/DELETE /api/equipment`, `GET/POST/PUT/DELETE /api/equipment-categories` |
+| `/Borrow` | Borrow requests — User: theo dõi; **Staff**/Admin: duyệt/bàn giao/trả | `GET /api/borrow-requests`, `GET /api/borrow-requests/{id}`, `PATCH /api/borrow-requests/{id}` |
+| `/Manage` | Equipment & category CRUD (**Staff**/Admin) | `GET/POST/PUT/DELETE /api/equipment`, `GET/POST/PUT/DELETE /api/equipment-categories` |
 | `/Reports` | Dashboard & summaries (Staff/Admin) | `GET /api/reports/dashboard`, `GET /api/reports/overdue-requests`, `GET /api/reports/borrow-summary` |
 | `/Users` | User list & create Staff (Admin) | `GET /api/users`, `POST /api/users`, `PATCH /api/users/{id}` |
 | `/Users/{id}` | User detail & activate/deactivate (Admin) | `GET /api/users/{id}`, `PATCH /api/users/{id}` |

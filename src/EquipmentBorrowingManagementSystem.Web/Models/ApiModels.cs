@@ -79,6 +79,7 @@ public class UpdateBorrowRequestItemDto
 {
     public int EquipmentId { get; set; }
     public string? Note { get; set; }
+    public string? Status { get; set; }
 }
 
 public class UserDto
@@ -108,7 +109,7 @@ public class CreateEquipmentDto
     public string Name { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;
     public int CategoryId { get; set; }
-    public string? Location { get; set; }
+    public string Location { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
 }
@@ -119,7 +120,7 @@ public class UpdateEquipmentDto
     public string SerialNumber { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string? Location { get; set; }
+    public string Location { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
 }
@@ -163,8 +164,7 @@ public class DashboardStatsDto
     public EquipmentStatusCountDto EquipmentByStatus { get; set; } = new();
     public List<StatusCountDto> BorrowRequestsByStatus { get; set; } = [];
     public int OverdueRequestCount { get; set; }
-    public int LostEquipmentCount { get; set; }
-    public int CompensatedEquipmentCount { get; set; }
+    public int DamagedEquipmentCount { get; set; }
     public int MaintenanceEquipmentCount { get; set; }
     public List<MostBorrowedEquipmentDto> MostBorrowedEquipment { get; set; } = [];
 }

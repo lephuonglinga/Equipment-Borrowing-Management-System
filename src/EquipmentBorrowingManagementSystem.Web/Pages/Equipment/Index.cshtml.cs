@@ -106,20 +106,43 @@ public class IndexModel : EbmsPageModel
             return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
         }
 
+        var borrowDay = borrowDate.Date;
+        var returnDay = expectedReturnDate.Date;
+        var today = DateTime.Today;
+
+        if (borrowDay < today)
+        {
+            SetPageMessage("Ngày mượn không được ở trong quá khứ.", isError: true);
+            return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
+        }
+
+        if (returnDay < borrowDay)
+        {
+            SetPageMessage("Ngày trả dự kiến phải sau hoặc bằng ngày mượn.", isError: true);
+            return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
+        }
+
+        if (string.IsNullOrWhiteSpace(purpose))
+        {
+            SetPageMessage("Mục đích là bắt buộc.", isError: true);
+            return RedirectToPage(new { Search, CategoryId, Status, PageNumber });
+        }
+
         try
         {
             await _api.PostAsync(
                 "api/borrow-requests",
                 new CreateBorrowRequestDto
                 {
-                    BorrowDate = borrowDate.ToUniversalTime(),
-                    ExpectedReturnDate = expectedReturnDate.ToUniversalTime(),
+                    BorrowDate = DateTime.SpecifyKind(borrowDay, DateTimeKind.Utc),
+                    ExpectedReturnDate = DateTime.SpecifyKind(returnDay, DateTimeKind.Utc),
                     Purpose = purpose.Trim(),
                     Items = items
                 },
                 cancellationToken: cancellationToken);
 
             _cart.Clear();
+            SetPageMessage("Đăng ký mượn thành công.");
             return RedirectToPage("/Borrow/Index", new { tab = "pending" });
         }
         catch (ApiException ex)

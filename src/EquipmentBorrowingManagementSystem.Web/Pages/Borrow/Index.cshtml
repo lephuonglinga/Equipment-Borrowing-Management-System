@@ -1,5 +1,6 @@
 @page
 @using EquipmentBorrowingManagementSystem.Web.Helpers
+@using EquipmentBorrowingManagementSystem.Web.Infrastructure
 @model EquipmentBorrowingManagementSystem.Web.Pages.Borrow.IndexModel
 @{
     ViewData["Title"] = Model.IsStaff ? "Duyệt mượn" : "Yêu cầu mượn";
@@ -17,15 +18,6 @@
             <a class="btn btn-success" asp-page="/Equipment/Index">Mượn thêm</a>
         }
     </div>
-
-    @if (TempData["SuccessMessage"] is string success)
-    {
-        <div class="alert alert-success">@success</div>
-    }
-    @if (TempData["ErrorMessage"] is string error)
-    {
-        <div class="alert alert-error">@error</div>
-    }
 
     <div class="tab-bar">
         <a asp-page="/Borrow/Index" asp-route-tab="pending" class="@(Model.ActiveTab == "pending" ? "active" : "")">Chờ duyệt (@Model.CountByTab("pending"))</a>
@@ -75,12 +67,13 @@
                             <input type="hidden" name="tab" value="@Model.ActiveTab" />
                             <button type="submit" class="btn btn-success btn-sm">Duyệt</button>
                         </form>
-                        <form method="post" asp-page-handler="Reject">
-                            <input type="hidden" name="id" value="@r.Id" />
-                            <input type="hidden" name="tab" value="@Model.ActiveTab" />
-                            <input type="text" name="rejectReason" placeholder="Lý do từ chối" required class="form-group" style="max-width:220px;" />
-                            <button type="submit" class="btn btn-danger btn-sm">Từ chối</button>
-                        </form>
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                data-open-reject
+                                data-request-id="@r.Id"
+                                data-request-tab="@Model.ActiveTab">
+                            Từ chối
+                        </button>
                     }
                     @if (Model.IsStaff && r.Status == "Approved")
                     {
@@ -95,6 +88,33 @@
         }
     }
 </div>
+
+@if (Model.IsStaff)
+{
+    <div class="modal-overlay reject-modal" id="rejectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Từ chối yêu cầu</h2>
+                <button type="button" class="btn btn-neutral btn-sm" data-close>&times;</button>
+            </div>
+            <form method="post" asp-page-handler="Reject" id="rejectForm">
+                <input type="hidden" name="id" id="rejectRequestId" />
+                <input type="hidden" name="tab" id="rejectTab" />
+                <div class="modal-body">
+                    <p class="subtitle" style="margin-top:0;">Nhập lý do từ chối để người mượn được thông báo.</p>
+                    <div class="form-group">
+                        <label for="rejectReason">Lý do từ chối</label>
+                        <textarea name="rejectReason" id="rejectReason" rows="4" maxlength="500" required placeholder="Ví dụ: Thiết bị đang bảo trì, không đủ số lượng..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-neutral" data-close>Hủy</button>
+                    <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
 
 @if (Model.DetailRequest is not null)
 {
@@ -123,19 +143,30 @@
                 }
                 else if (Model.ActionMode == "return")
                 {
-                    <form method="post" asp-page-handler="Return">
+                    <form method="post" asp-page-handler="Return" id="returnForm" novalidate>
                         <input type="hidden" name="id" value="@Model.DetailRequest.Id" />
                         <input type="hidden" name="tab" value="@Model.ActiveTab" />
                         <div class="section-title" style="margin-top:0;">Ghi nhận trả thiết bị</div>
                         <div class="form-group">
-                            <label>Ghi chú staff</label>
+                            <label>Ghi chú staff (tùy chọn)</label>
                             <input type="text" name="staffNote" />
                         </div>
                         @foreach (var item in Model.DetailRequest.Items)
                         {
-                            <div class="form-group">
-                                <label>@item.EquipmentName</label>
-                                <input type="text" name="notes[@item.EquipmentId]" placeholder="Ghi chú (tùy chọn)" />
+                            <div class="return-item-block">
+                                <div class="form-group">
+                                    <label>@item.EquipmentName · @item.SerialNumber</label>
+                                    <select name="statuses[@item.EquipmentId]" required class="return-status-select">
+                                        <option value="">— Chọn trạng thái —</option>
+                                        @foreach (var status in FormValidation.ReturnStatuses)
+                                        {
+                                            <option value="@status">@status</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" name="notes[@item.EquipmentId]" placeholder="Ghi chú (tùy chọn)" />
+                                </div>
                             </div>
                         }
                         <button type="submit" class="btn btn-primary">Xác nhận trả</button>

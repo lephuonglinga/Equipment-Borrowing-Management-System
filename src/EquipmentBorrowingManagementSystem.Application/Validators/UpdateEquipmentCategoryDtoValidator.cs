@@ -8,7 +8,10 @@ public class UpdateEquipmentCategoryDtoValidator : AbstractValidator<UpdateEquip
 {
     public UpdateEquipmentCategoryDtoValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().WithMessage(ValidationMessages.Required).MaximumLength(100);
+        RuleFor(x => x.Name)
+            .Must(v => !string.IsNullOrWhiteSpace(v)).WithMessage(ValidationMessages.Required)
+            .MaximumLength(100);
+
         RuleFor(x => x.Description).MaximumLength(500);
     }
 }

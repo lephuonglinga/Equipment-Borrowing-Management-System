@@ -9,7 +9,8 @@ public class LoginDtoValidator : AbstractValidator<LoginDto>
     public LoginDtoValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage(ValidationMessages.Required)
+            .Must(value => InputNormalizer.HasContent(value))
+            .WithMessage(ValidationMessages.Required)
             .EmailAddress().WithMessage(ValidationMessages.InvalidEmail);
 
         RuleFor(x => x.Password)

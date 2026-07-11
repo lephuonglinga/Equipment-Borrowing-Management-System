@@ -1,5 +1,6 @@
 @page
 @using EquipmentBorrowingManagementSystem.Web.Helpers
+@using EquipmentBorrowingManagementSystem.Web.Infrastructure
 @model EquipmentBorrowingManagementSystem.Web.Pages.Manage.IndexModel
 @{
     ViewData["Title"] = "Quản lý";
@@ -10,18 +11,9 @@
     <div class="page-header">
         <div>
             <h1>Quản lý thiết bị &amp; danh mục</h1>
-            <p class="subtitle">Staff/Admin — CRUD thiết bị và danh mục.</p>
+            <p class="subtitle">Staff — CRUD thiết bị và danh mục; Admin có thêm quyền quản lý Users.</p>
         </div>
     </div>
-
-    @if (TempData["SuccessMessage"] is string success)
-    {
-        <div class="alert alert-success">@success</div>
-    }
-    @if (TempData["ErrorMessage"] is string error)
-    {
-        <div class="alert alert-error">@error</div>
-    }
 
     <div class="tab-bar">
         <a asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" class="@(Model.ActiveTab == "equipment" ? "active" : "")">Thiết bị</a>
@@ -37,9 +29,16 @@
                     <label>Lọc trạng thái</label>
                     <select name="status" onchange="this.form.submit()">
                         <option value="">Tất cả</option>
-                        @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Lost", "Compensated", "Retired" })
+                        @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Damaged", "Retired" })
                         {
-                            <option value="@status" selected="@(Model.StatusFilter == status)">@status</option>
+                            if (Model.StatusFilter == status)
+                            {
+                                <option value="@status" selected>@status</option>
+                            }
+                            else
+                            {
+                                <option value="@status">@status</option>
+                            }
                         }
                     </select>
                 </div>
@@ -66,28 +65,23 @@
                                 <td class="table-actions">
                                     @if (eq.Status == "Maintenance")
                                     {
-                                        <form method="post" asp-page-handler="CompleteMaintenance" style="display:inline;">
-                                            <input type="hidden" name="id" value="@eq.Id" />
-                                            <input type="hidden" name="tab" value="equipment" />
-                                            <input type="hidden" name="status" value="@Model.StatusFilter" />
-                                            <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
-                                            <button type="submit" class="btn btn-success btn-sm">Hoàn tất BT</button>
-                                        </form>
+                                        <button type="button"
+                                                class="btn btn-success btn-sm"
+                                                data-open-maintenance
+                                                data-equipment-id="@eq.Id"
+                                                data-equipment-name="@eq.Name"
+                                                data-status-filter="@Model.StatusFilter"
+                                                data-page-number="@Model.PageNumber">
+                                            Hoàn tất BT
+                                        </button>
                                     }
-                                    @if (eq.Status == "Lost")
-                                    {
-                                        <form method="post" asp-page-handler="Compensate" style="display:inline;" onsubmit="return confirm('Xác nhận đã đền bù?');">
-                                            <input type="hidden" name="id" value="@eq.Id" />
-                                            <input type="hidden" name="tab" value="equipment" />
-                                            <input type="hidden" name="status" value="@Model.StatusFilter" />
-                                            <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
-                                            <button type="submit" class="btn btn-danger btn-sm">Đã đền bù</button>
-                                        </form>
-                                    }
-                                    @if (eq.Status is not ("Lost" or "Compensated" or "Borrowed" or "Reserved"))
+                                    @if (FormValidation.CanEditEquipment(eq.Status))
                                     {
                                         <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-editEquipmentId="@eq.Id" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@Model.PageNumber">Sửa</a>
-                                        <form method="post" asp-page-handler="DeleteEquipment" style="display:inline;" onsubmit="return confirm('Xóa thiết bị này?');">
+                                    }
+                                    @if (FormValidation.CanDeleteEquipment(eq.Status))
+                                    {
+                                        <form method="post" asp-page-handler="DeleteEquipment" onsubmit="return confirm('Xóa thiết bị này?');">
                                             <input type="hidden" name="id" value="@eq.Id" />
                                             <input type="hidden" name="tab" value="equipment" />
                                             <input type="hidden" name="status" value="@Model.StatusFilter" />
@@ -155,20 +149,27 @@
             <h2>@(Model.EditEquipment is null ? "Thêm thiết bị" : "Sửa thiết bị")</h2>
             <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="@Model.StatusFilter" asp-route-pageNumber="@Model.PageNumber">&times;</a>
         </div>
-        <form method="post" asp-page-handler="SaveEquipment">
+        <form method="post" asp-page-handler="SaveEquipment" id="equipmentForm" novalidate>
             <div class="modal-body">
                 <input type="hidden" name="id" value="@Model.EditEquipment?.Id" />
                 <input type="hidden" name="tab" value="equipment" />
                 <input type="hidden" name="status" value="@Model.StatusFilter" />
                 <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
-                <div class="form-group"><label>Tên</label><input name="name" value="@Model.EditEquipment?.Name" required /></div>
-                <div class="form-group"><label>Serial</label><input name="serialNumber" value="@Model.EditEquipment?.SerialNumber" required /></div>
+                <div class="form-group"><label>Tên</label><input name="name" id="equipmentName" value="@Model.EditEquipment?.Name" required /></div>
+                <div class="form-group"><label>Serial</label><input name="serialNumber" id="equipmentSerial" value="@Model.EditEquipment?.SerialNumber" required /></div>
                 <div class="form-group">
                     <label>Danh mục</label>
-                    <select name="categoryId" required>
+                    <select name="categoryId" id="equipmentCategory" required>
                         @foreach (var cat in Model.Categories)
                         {
-                            <option value="@cat.Id" selected="@(Model.EditEquipment?.CategoryId == cat.Id)">@cat.Name</option>
+                            if (Model.EditEquipment?.CategoryId == cat.Id)
+                            {
+                                <option value="@cat.Id" selected>@cat.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@cat.Id">@cat.Name</option>
+                            }
                         }
                     </select>
                 </div>
@@ -177,14 +178,21 @@
                     <div class="form-group">
                         <label>Trạng thái</label>
                         <select name="statusValue">
-                            @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Retired", "Lost", "Compensated" })
+                            @foreach (var status in FormValidation.StaffSettableStatuses)
                             {
-                                <option value="@status" selected="@(Model.EditEquipment.Status == status)">@status</option>
+                                if (Model.EditEquipment.Status == status)
+                                {
+                                    <option value="@status" selected>@status</option>
+                                }
+                                else
+                                {
+                                    <option value="@status">@status</option>
+                                }
                             }
                         </select>
                     </div>
                 }
-                <div class="form-group"><label>Vị trí</label><input name="location" value="@Model.EditEquipment?.Location" /></div>
+                <div class="form-group"><label>Vị trí</label><input name="location" id="equipmentLocation" value="@Model.EditEquipment?.Location" required /></div>
                 <div class="form-group"><label>Mô tả</label><textarea name="description" rows="3">@Model.EditEquipment?.Description</textarea></div>
                 <div class="form-group"><label>Image URL</label><input name="imageUrl" value="@Model.EditEquipment?.ImageUrl" /></div>
             </div>
@@ -196,16 +204,47 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="maintenanceModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Hoàn tất bảo trì</h2>
+            <button type="button" class="btn btn-neutral btn-sm" data-close>&times;</button>
+        </div>
+        <form method="post" asp-page-handler="CompleteMaintenance" id="maintenanceForm">
+            <input type="hidden" name="id" id="maintenanceEquipmentId" />
+            <input type="hidden" name="tab" value="equipment" />
+            <input type="hidden" name="status" id="maintenanceStatusFilter" />
+            <input type="hidden" name="pageNumber" id="maintenancePageNumber" />
+            <div class="modal-body">
+                <p class="subtitle" style="margin-top:0;" id="maintenanceEquipmentName"></p>
+                <div class="form-group">
+                    <label for="maintenanceTargetStatus">Trạng thái sau bảo trì</label>
+                    <select name="targetStatus" id="maintenanceTargetStatus" required>
+                        @foreach (var status in FormValidation.MaintenanceCompleteStatuses)
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-neutral" data-close>Hủy</button>
+                <button type="submit" class="btn btn-success">Xác nhận</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="modal-overlay @(Model.ShowCategoryModal ? "open" : "")" id="categoryModal">
     <div class="modal">
         <div class="modal-header">
             <h2>@(Model.EditCategory is null ? "Thêm danh mục" : "Sửa danh mục")</h2>
             <a class="btn btn-neutral btn-sm" asp-page="/Manage/Index" asp-route-tab="categories">&times;</a>
         </div>
-        <form method="post" asp-page-handler="SaveCategory">
+        <form method="post" asp-page-handler="SaveCategory" id="categoryForm" novalidate>
             <div class="modal-body">
                 <input type="hidden" name="id" value="@Model.EditCategory?.Id" />
-                <div class="form-group"><label>Tên</label><input name="name" value="@Model.EditCategory?.Name" required /></div>
+                <div class="form-group"><label>Tên</label><input name="name" id="categoryName" value="@Model.EditCategory?.Name" required /></div>
                 <div class="form-group"><label>Mô tả</label><textarea name="description" rows="3">@Model.EditCategory?.Description</textarea></div>
             </div>
             <div class="modal-footer">

@@ -28,8 +28,7 @@
             <div class="stat-card"><div class="label">Maintenance</div><div class="value">@Model.Dashboard.EquipmentByStatus.Maintenance</div></div>
             <div class="stat-card accent"><div class="label">Quá hạn</div><div class="value">@Model.Dashboard.OverdueRequestCount</div></div>
             <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Maintenance"><div class="stat-card accent"><div class="label">Đang bảo trì</div><div class="value">@Model.Dashboard.MaintenanceEquipmentCount</div></div></a>
-            <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Lost"><div class="stat-card accent"><div class="label">Đang mất</div><div class="value">@Model.Dashboard.LostEquipmentCount</div></div></a>
-            <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Compensated"><div class="stat-card accent"><div class="label">Đã đền bù</div><div class="value">@Model.Dashboard.CompensatedEquipmentCount</div></div></a>
+            <a class="stat-card-link" asp-page="/Manage/Index" asp-route-tab="equipment" asp-route-status="Damaged"><div class="stat-card accent"><div class="label">Hỏng / Damaged</div><div class="value">@Model.Dashboard.DamagedEquipmentCount</div></div></a>
         </div>
 
         @if (Model.Dashboard.BorrowRequestsByStatus.Count > 0)

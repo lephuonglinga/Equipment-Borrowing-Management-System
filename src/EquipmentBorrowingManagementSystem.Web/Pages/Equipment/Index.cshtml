@@ -19,10 +19,6 @@
     {
         <div class="alert alert-error">@Model.ErrorMessage</div>
     }
-    @if (TempData["SuccessMessage"] is string success)
-    {
-        <div class="alert alert-success">@success</div>
-    }
 
     <form method="get" class="equipment-toolbar">
         <div class="form-group search-group">
@@ -43,7 +39,7 @@
             <label>Trạng thái</label>
             <select name="status">
                 <option value="">Tất cả</option>
-                @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Retired", "Lost" })
+                @foreach (var status in new[] { "Available", "Borrowed", "Maintenance", "Reserved", "Damaged", "Retired" })
                 {
                     <option value="@status" selected="@(Model.Status == status)">@status</option>
                 }
@@ -140,7 +136,7 @@
                 <h2>Xác nhận mượn</h2>
                 <button type="button" class="btn btn-neutral btn-sm" data-close>&times;</button>
             </div>
-            <form method="post" asp-page-handler="SubmitBorrow">
+            <form method="post" asp-page-handler="SubmitBorrow" id="borrowSubmitForm" novalidate>
                 <div class="modal-body">
                     <ul class="item-list">
                         @foreach (var item in Model.Cart)
@@ -150,15 +146,15 @@
                     </ul>
                     <div class="form-group">
                         <label>Ngày mượn</label>
-                        <input type="date" name="borrowDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        <input type="date" name="borrowDate" id="borrowDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                     </div>
                     <div class="form-group">
                         <label>Ngày trả dự kiến</label>
-                        <input type="date" name="expectedReturnDate" required />
+                        <input type="date" name="expectedReturnDate" id="expectedReturnDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                     </div>
                     <div class="form-group">
                         <label>Mục đích</label>
-                        <textarea name="purpose" rows="3" required></textarea>
+                        <textarea name="purpose" id="borrowPurpose" rows="3" maxlength="500" required placeholder="Mô tả mục đích sử dụng thiết bị"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

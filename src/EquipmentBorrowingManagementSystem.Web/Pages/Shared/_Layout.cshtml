@@ -56,6 +56,16 @@
 
 @RenderBody()
 
+<div id="ebmsToastHost" class="ebms-toast-host" aria-live="polite"></div>
+@if (TempData["SuccessMessage"] is string toastSuccess)
+{
+    <script>window.__ebmsToast = { type: "success", message: @System.Text.Json.JsonSerializer.Serialize(toastSuccess) };</script>
+}
+else if (TempData["ErrorMessage"] is string toastError)
+{
+    <script>window.__ebmsToast = { type: "error", message: @System.Text.Json.JsonSerializer.Serialize(toastError) };</script>
+}
+
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

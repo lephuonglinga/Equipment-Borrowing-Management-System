@@ -37,8 +37,6 @@ public class BorrowRequestService : IBorrowRequestService
             return Result<List<BorrowRequestDto>>.Fail("Phiên đăng nhập không hợp lệ.", StatusCodes.Status401Unauthorized);
         }
 
-        await ProcessExpiredApprovalsAsync();
-
         var requests = IsStaffOrAdmin(_currentUser.Role)
             ? await _unitOfWork.BorrowRequests.GetAllWithDetailsAsync()
             : await _unitOfWork.BorrowRequests.GetAllWithDetailsAsync(_currentUser.UserId.Value);
@@ -48,8 +46,6 @@ public class BorrowRequestService : IBorrowRequestService
 
     public async Task<Result<BorrowRequestDto>> GetByIdAsync(int id)
     {
-        await ProcessExpiredApprovalsAsync();
-
         var request = await _unitOfWork.BorrowRequests.GetByIdWithDetailsAsync(id);
         if (request == null)
         {
@@ -77,6 +73,13 @@ public class BorrowRequestService : IBorrowRequestService
                 ValidationMessages.ReturnAfterBorrow,
                 StatusCodes.Status400BadRequest);
         }
+
+        if (InputNormalizer.Require(dto.Purpose, out var purpose, ValidationMessages.PurposeRequired) is { } purposeError)
+        {
+            return Result<BorrowRequestDto>.Fail(purposeError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Purpose = purpose;
 
         if (await _unitOfWork.BorrowRequests.UserHasOverdueRequestAsync(_currentUser.UserId.Value))
         {
@@ -275,6 +278,11 @@ public class BorrowRequestService : IBorrowRequestService
             return Result<BorrowRequestDto>.Fail("Chỉ Staff/Admin mới được từ chối yêu cầu.", StatusCodes.Status403Forbidden);
         }
 
+        if (InputNormalizer.Require(rejectReason, out var reason, ValidationMessages.RejectReasonRequired) is { } reasonError)
+        {
+            return Result<BorrowRequestDto>.Fail(reasonError, StatusCodes.Status400BadRequest);
+        }
+
         var request = await _unitOfWork.BorrowRequests.GetByIdForUpdateAsync(id);
         if (request == null)
         {
@@ -291,7 +299,7 @@ public class BorrowRequestService : IBorrowRequestService
         ReleaseReservedEquipment(request, _unitOfWork);
 
         request.Status = BorrowRequestStatus.Rejected;
-        request.RejectReason = rejectReason;
+        request.RejectReason = reason;
         request.ApprovedById = _currentUser.UserId;
         request.ApprovedAt = DateTime.UtcNow;
         _unitOfWork.BorrowRequests.Update(request);
@@ -384,9 +392,9 @@ public class BorrowRequestService : IBorrowRequestService
 
         foreach (var item in request.Items)
         {
-            var note = returnMap[item.EquipmentId];
+            var (note, status) = returnMap[item.EquipmentId];
             item.ReturnNote = note;
-            item.Equipment.Status = EquipmentStatus.Available;
+            item.Equipment.Status = status;
             _unitOfWork.Equipment.Update(item.Equipment);
         }
 
@@ -450,15 +458,23 @@ public class BorrowRequestService : IBorrowRequestService
         return map;
     }
 
-    private static Dictionary<int, string?> ParseReturnMap(
+    private static Dictionary<int, (string? Note, EquipmentStatus Status)> ParseReturnMap(
         List<UpdateBorrowRequestItemDto> items,
         out string? error)
     {
         error = null;
-        var map = new Dictionary<int, string?>();
+        var map = new Dictionary<int, (string? Note, EquipmentStatus Status)>();
         foreach (var itemDto in items)
         {
-            map[itemDto.EquipmentId] = itemDto.Note?.Trim();
+            if (string.IsNullOrWhiteSpace(itemDto.Status) ||
+                !Enum.TryParse<EquipmentStatus>(itemDto.Status, ignoreCase: true, out var status) ||
+                !EquipmentRules.IsValidReturnStatus(status))
+            {
+                error = ValidationMessages.ReturnEquipmentStatusInvalid;
+                return map;
+            }
+
+            map[itemDto.EquipmentId] = (InputNormalizer.TrimToNull(itemDto.Note), status);
         }
 
         return map;

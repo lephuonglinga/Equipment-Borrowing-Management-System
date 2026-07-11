@@ -49,6 +49,19 @@ public class UserService : IUserService
 
     public async Task<Result<UserDto>> CreateAsync(CreateUserDto dto)
     {
+        if (InputNormalizer.Require(dto.Email, out var email, ValidationMessages.Required) is { } emailError)
+        {
+            return Result<UserDto>.Fail(emailError, StatusCodes.Status400BadRequest);
+        }
+
+        if (InputNormalizer.Require(dto.FullName, out var fullName, ValidationMessages.Required) is { } nameError)
+        {
+            return Result<UserDto>.Fail(nameError, StatusCodes.Status400BadRequest);
+        }
+
+        dto.Email = email;
+        dto.FullName = fullName;
+
         var existing = await _unitOfWork.Users.GetByEmailAsync(dto.Email);
         if (existing != null)
         {
@@ -57,9 +70,9 @@ public class UserService : IUserService
 
         var user = new User
         {
-            Email = dto.Email.Trim(),
+            Email = dto.Email,
             PasswordHash = _passwordHasher.Hash(dto.Password),
-            FullName = dto.FullName.Trim(),
+            FullName = dto.FullName,
             Role = UserRole.Staff,
             IsActive = true
         };

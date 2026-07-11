@@ -9,8 +9,10 @@ public class CreateBorrowRequestDtoValidator : AbstractValidator<CreateBorrowReq
     public CreateBorrowRequestDtoValidator()
     {
         RuleFor(x => x.Purpose)
-            .NotEmpty().WithMessage(ValidationMessages.PurposeRequired)
-            .MaximumLength(500).WithMessage(ValidationMessages.PurposeMaxLength);
+            .Must(value => InputNormalizer.HasContent(value))
+            .WithMessage(ValidationMessages.PurposeRequired)
+            .Must(value => value.Trim().Length <= 500)
+            .WithMessage(ValidationMessages.PurposeMaxLength);
 
         RuleFor(x => x.BorrowDate)
             .NotEmpty().WithMessage(ValidationMessages.BorrowDateRequired);

@@ -78,6 +78,13 @@ public class IndexModel : EbmsPageModel
     public async Task<IActionResult> OnPostRejectAsync(int id, string tab, string rejectReason, CancellationToken cancellationToken)
     {
         if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
+
+        if (string.IsNullOrWhiteSpace(rejectReason))
+        {
+            SetPageMessage("Vui lòng nhập lý do từ chối.", isError: true);
+            return RedirectToPage(new { tab });
+        }
+
         return await PatchAndRedirectAsync(id, new UpdateBorrowRequestDto { Status = "Rejected", RejectReason = rejectReason.Trim() }, tab, "Đã từ chối yêu cầu.", cancellationToken);
     }
 
@@ -95,16 +102,45 @@ public class IndexModel : EbmsPageModel
         return await PatchAndRedirectAsync(id, new UpdateBorrowRequestDto { Status = "InProgress", Items = items }, tab, "Đã bàn giao thiết bị.", cancellationToken);
     }
 
-    public async Task<IActionResult> OnPostReturnAsync(int id, string tab, string? staffNote, Dictionary<int, string> notes, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostReturnAsync(
+        int id,
+        string tab,
+        string? staffNote,
+        Dictionary<int, string> notes,
+        Dictionary<int, string> statuses,
+        CancellationToken cancellationToken)
     {
         if (EnsureStaffOrAdmin() is IActionResult redirect) return redirect;
 
         var request = await _api.GetAsync<BorrowRequestDto>($"api/borrow-requests/{id}", cancellationToken: cancellationToken);
-        var items = request?.Items.Select(i => new UpdateBorrowRequestItemDto
+        if (request is null)
         {
-            EquipmentId = i.EquipmentId,
-            Note = notes.TryGetValue(i.EquipmentId, out var note) && !string.IsNullOrWhiteSpace(note) ? note.Trim() : null
-        }).ToList();
+            SetPageMessage("Không tìm thấy yêu cầu mượn.", isError: true);
+            return RedirectToPage(new { tab });
+        }
+
+        var items = new List<UpdateBorrowRequestItemDto>();
+        foreach (var item in request.Items)
+        {
+            if (!statuses.TryGetValue(item.EquipmentId, out var status) || string.IsNullOrWhiteSpace(status))
+            {
+                SetPageMessage($"Vui lòng chọn trạng thái cho thiết bị {item.EquipmentName}.", isError: true);
+                return RedirectToPage(new { tab, detailId = id, action = "return" });
+            }
+
+            if (!FormValidation.ReturnStatuses.Contains(status))
+            {
+                SetPageMessage("Trạng thái trả không hợp lệ.", isError: true);
+                return RedirectToPage(new { tab, detailId = id, action = "return" });
+            }
+
+            items.Add(new UpdateBorrowRequestItemDto
+            {
+                EquipmentId = item.EquipmentId,
+                Status = status,
+                Note = notes.TryGetValue(item.EquipmentId, out var note) && !string.IsNullOrWhiteSpace(note) ? note.Trim() : null
+            });
+        }
 
         return await PatchAndRedirectAsync(id, new UpdateBorrowRequestDto
         {

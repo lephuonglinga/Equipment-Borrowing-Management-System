@@ -13,6 +13,7 @@
 </head>
 <body class="auth-page">
 @RenderBody()
+<div id="ebmsToastHost" class="ebms-toast-host" aria-live="polite"></div>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
