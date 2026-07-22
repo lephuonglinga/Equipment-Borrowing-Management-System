@@ -52,8 +52,6 @@
             {
                 <a asp-page="/Reports/Index" class="nav-staff @(activePage == "reports" ? "active" : "")"><i class="fa-solid fa-chart-pie"></i> Báo cáo</a>
                 <a asp-page="/Manage/Index" class="nav-staff @(activePage == "manage" ? "active" : "")"><i class="fa-solid fa-pen-to-square"></i> Quản lý</a>
-                <a asp-page="/ODataExplorer/Index" class="nav-staff @(activePage == "odata" ? "active" : "")"><i class="fa-solid fa-database"></i> OData</a>
-                <a asp-page="/GrpcTools/Index" class="nav-staff @(activePage == "grpc" ? "active" : "")"><i class="fa-solid fa-bolt"></i> gRPC</a>
             }
             @if (auth.IsAdmin)
             {

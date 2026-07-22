@@ -4,7 +4,7 @@ Web app: `http://localhost:5172`
 API: `http://localhost:5171`  
 gRPC notification: `http://localhost:5272`
 
-Mọi REST/OData gọi **server-side** từ Razor Page models qua `EbmsApiClient` (bearer trong session). gRPC gọi từ `NotificationService` / `GrpcNotificationService`.
+Mọi REST gọi **server-side** từ Razor Page models qua `EbmsApiClient` (bearer trong session). OData chỉ dùng qua API/Swagger (không có trang UI). gRPC chỉ được gọi từ `NotificationService` khi nghiệp vụ tạo thông báo (không có trang demo UI).
 
 ## Role & function matrix
 
@@ -16,7 +16,7 @@ Mọi REST/OData gọi **server-side** từ Razor Page models qua `EbmsApiClient
 | **Duyệt / từ chối / bàn giao / nhận trả** | | **✓** | |
 | Vào trang `/Borrow` (Duyệt mượn / Yêu cầu mượn) | ✓ | ✓ | **✗** |
 | **Quản lý thiết bị & danh mục** (`/Manage`) | | ✓ | ✓ |
-| Báo cáo, OData Explorer, gRPC tools | | ✓ | ✓ |
+| Báo cáo | | ✓ | ✓ |
 | Quản lý Users (tạo Staff, kích hoạt/vô hiệu) | | | ✓ |
 | Xem thông báo + badge chưa đọc | ✓ | ✓ | ✓ |
 
@@ -42,8 +42,6 @@ Ghi chú:
 | `/Users` | User list & create Staff (Admin) | `GET /api/users`, `POST /api/users`, `PATCH /api/users/{id}` |
 | `/Users/{id}` | User detail & activate/deactivate (Admin) | `GET /api/users/{id}`, `PATCH /api/users/{id}` |
 | `/Notifications` | Inbox + mark read | `GET /api/notifications`, `PATCH /api/notifications/{id}/read` |
-| `/ODataExplorer` | OData tester (Staff/Admin) | `GET /odata/Equipment`, `GET /odata/BorrowRequests` |
-| `/GrpcTools` | gRPC sender (Staff/Admin) | gRPC `EmailNotificationService.Send` |
 
 ## Session / auth support
 
@@ -55,6 +53,8 @@ Ghi chú:
 
 - `GET /api/equipment-categories/{id}` — dùng gián tiếp qua list
 - Audit APIs — đã xóa (không còn bảng AuditLogs)
+- OData (`GET /odata/Equipment`, `GET /odata/BorrowRequests`) — demo qua Swagger/Postman, không có trang UI
+- gRPC `EmailNotificationService.Send` — chạy ngầm khi tạo notification; không có trang demo UI
 - OData entity sets khác Equipment / BorrowRequests — không cấu hình trong EDM
 
 ## Notes

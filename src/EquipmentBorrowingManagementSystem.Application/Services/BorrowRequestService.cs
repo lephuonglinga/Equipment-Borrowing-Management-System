@@ -37,7 +37,10 @@ public class BorrowRequestService : IBorrowRequestService
             return Result<List<BorrowRequestDto>>.Fail("Phiên đăng nhập không hợp lệ.", StatusCodes.Status401Unauthorized);
         }
 
-        await ProcessOverdueTransitionsAsync();
+        if (IsStaff(_currentUser.Role))
+        {
+            await ProcessOverdueTransitionsAsync();
+        }
 
         var requests = IsStaff(_currentUser.Role)
             ? await _unitOfWork.BorrowRequests.GetAllWithDetailsAsync()
@@ -48,7 +51,10 @@ public class BorrowRequestService : IBorrowRequestService
 
     public async Task<Result<BorrowRequestDto>> GetByIdAsync(int id)
     {
-        await ProcessOverdueTransitionsAsync();
+        if (IsStaff(_currentUser.Role))
+        {
+            await ProcessOverdueTransitionsAsync();
+        }
 
         var request = await _unitOfWork.BorrowRequests.GetByIdWithDetailsAsync(id);
         if (request == null)
@@ -89,8 +95,6 @@ public class BorrowRequestService : IBorrowRequestService
         }
 
         dto.Purpose = purpose;
-
-        await ProcessOverdueTransitionsAsync();
 
         if (await _unitOfWork.BorrowRequests.UserHasOverdueRequestAsync(_currentUser.UserId.Value))
         {

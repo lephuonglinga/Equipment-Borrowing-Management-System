@@ -80,29 +80,6 @@ public class EbmsApiClient
         await SendAsync<object?>(request, requireAuth, cancellationToken, allowEmpty: true);
     }
 
-    public async Task<ODataQueryResult> QueryODataAsync(string path, bool requireAuth = true, CancellationToken cancellationToken = default)
-    {
-        using var request = CreateRequest(HttpMethod.Get, path, requireAuth);
-        var response = await SendWithRefreshAsync(request, requireAuth, retried: false, cancellationToken);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return new ODataQueryResult
-            {
-                StatusCode = (int)response.StatusCode,
-                RawJson = raw,
-                ErrorMessage = TryParseMessage(raw)
-            };
-        }
-
-        return new ODataQueryResult
-        {
-            StatusCode = (int)response.StatusCode,
-            RawJson = FormatJson(raw)
-        };
-    }
-
     private HttpRequestMessage CreateRequest(HttpMethod method, string path, bool requireAuth, object? body = null)
     {
         var request = new HttpRequestMessage(method, path.TrimStart('/'));
@@ -250,19 +227,6 @@ public class EbmsApiClient
         catch
         {
             return null;
-        }
-    }
-
-    private static string FormatJson(string raw)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(raw);
-            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch
-        {
-            return raw;
         }
     }
 }

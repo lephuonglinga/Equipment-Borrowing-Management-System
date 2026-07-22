@@ -7,8 +7,6 @@ builder.Services.Configure<ApiOptions>(options =>
 {
     options.BaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5171";
 });
-builder.Services.Configure<GrpcNotificationOptions>(
-    builder.Configuration.GetSection(GrpcNotificationOptions.SectionName));
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
@@ -23,7 +21,6 @@ builder.Services.AddSession(options =>
 builder.Services.AddHttpClient<EbmsApiClient>();
 builder.Services.AddScoped<AuthSessionService>();
 builder.Services.AddScoped<BorrowCartService>();
-builder.Services.AddScoped<GrpcNotificationService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy => policy

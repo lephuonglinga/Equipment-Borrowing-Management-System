@@ -12,7 +12,7 @@
   - **Chỉ User** tạo yêu cầu mượn
   - **Chỉ Staff** duyệt / từ chối / bàn giao / nhận trả
   - **Admin** quản lý thiết bị + Users; **không** trang Duyệt mượn; **không** mượn
-- Auto-transition theo ngày:
+- Auto-transition theo ngày (**chỉ khi Staff truy cập** list/detail borrow — không có job nền):
   - Pending quá `BorrowDate` → Rejected
   - Approved quá `BorrowDate` → Cancelled (+ release Reserved)
   - InProgress quá `ExpectedReturnDate` → Overdue
@@ -31,22 +31,28 @@ Snapshot `AppDbContextModelSnapshot.cs` đã đồng bộ.
 
 ## 3. Documentation / ERD
 
+- `docs/PROJECT_DOCUMENTATION.md` — **đủ 14 mục nộp tài liệu** theo yêu cầu PRN232 §13:
+  giới thiệu, role, use case, ERD, business rules, workflow, kiến trúc, service design,
+  API list, security matrix, OData demo, content negotiation, gRPC, hướng dẫn chạy.
 - `docs/ERD.dbml` — schema hiện tại (không Quantity, có ActualReturnDate/ReturnStatus, không AuditLogs).
-- `docs/PROJECT_DOCUMENTATION.md` — statechart + nghiệp vụ + phân quyền.
 - `docs/API_PAGE_MAPPING.md` — map trang Razor ↔ API + ma trận role.
 - `docs/MANUAL_TEST_CHECKLIST.md` — checklist test thủ công.
+- Postman collection: chưa có file riêng; dùng Swagger + checklist để demo OData/API.
+- OData và gRPC **không** còn trang demo trên Web UI (Staff/Admin nav đã gỡ).
 
 ## 4. Web UI
 
 - Razor Pages (`EquipmentBorrowingManagementSystem.Web`), **không** còn phụ thuộc `client/*.html` cho flow chính.
 - Toast toàn cục; chuông hiện badge unread.
 - `/Manage`: filter đủ status; hoàn tất BT chọn Available/Retired; return chọn status từng thiết bị.
+- Đã gỡ `/ODataExplorer`, `/GrpcTools` và client gRPC/OData demo phía Web.
 
 ## 5. gRPC NotificationService
 
 - Project: `src/EquipmentBorrowingManagementSystem.Grpc`
 - Trigger: approve / reject / handover / return / auto-reject / auto-cancel / overdue
-- In-app `Notifications` + gRPC non-blocking
+- In-app `Notifications` + gRPC non-blocking (side-effect; lỗi gRPC không rollback noti DB)
+
 
 ## 6. Seed
 

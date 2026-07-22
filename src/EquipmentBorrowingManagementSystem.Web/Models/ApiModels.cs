@@ -199,13 +199,6 @@ public class BorrowCartItem
     public string CategoryName { get; set; } = string.Empty;
 }
 
-public class ODataQueryResult
-{
-    public string RawJson { get; set; } = string.Empty;
-    public int StatusCode { get; set; }
-    public string? ErrorMessage { get; set; }
-}
-
 public class NotificationDto
 {
     public int Id { get; set; }
@@ -214,10 +207,4 @@ public class NotificationDto
     public string Type { get; set; } = string.Empty;
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
-}
-
-public class GrpcSendResult
-{
-    public bool Success { get; set; }
-    public string Detail { get; set; } = string.Empty;
 }

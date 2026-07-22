@@ -4,7 +4,6 @@ using EquipmentBorrowingManagementSystem.Application.Interfaces.Repositories;
 using EquipmentBorrowingManagementSystem.Application.Interfaces.Security;
 using EquipmentBorrowingManagementSystem.Infrastructure.Data;
 using EquipmentBorrowingManagementSystem.Infrastructure.Grpc;
-using EquipmentBorrowingManagementSystem.Infrastructure.HostedServices;
 using EquipmentBorrowingManagementSystem.Infrastructure.Repositories;
 using EquipmentBorrowingManagementSystem.Infrastructure.Security;
 using EquipmentBorrowingManagementSystem.Grpc.Contracts;
@@ -42,8 +41,6 @@ public static class DependencyInjection
 
         services.Configure<GrpcNotificationSettings>(configuration.GetSection(GrpcNotificationSettings.SectionName));
         RegisterGrpcNotificationClient(services, configuration);
-
-        services.AddHostedService<BorrowRequestExpirationHostedService>();
 
         return services;
     }
