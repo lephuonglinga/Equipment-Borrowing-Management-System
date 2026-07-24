@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "EquipmentBorrowingManagementSystem.Grpc.Contracts";
+
+package ebms.notification;
+
+service EmailNotificationService {
+  rpc Send (NotificationRequest) returns (NotificationReply);
+}
+
+message NotificationRequest {
+  int32 user_id = 1;
+  string user_email = 2;
+  string title = 3;
+  string message = 4;
+  string notification_type = 5;
+}
+
+message NotificationReply {
+  bool success = 1;
+  string detail = 2;
+}
